@@ -35,6 +35,12 @@ import { safeDatabaseErrorCode } from './src/db/config.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// The production server is bundled into dist-server/server.js while the Vite
+// client is built into dist. Keep these paths separate so Cloud Run serves the
+// compiled client rather than TypeScript source files.
+const clientDistPath = process.env.NODE_ENV === 'production'
+  ? path.resolve(__dirname, '../dist')
+  : path.resolve(__dirname, 'dist');
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -464,9 +470,9 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
+    app.use(express.static(clientDistPath));
     app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+      res.sendFile(path.resolve(clientDistPath, 'index.html'));
     });
   }
 
