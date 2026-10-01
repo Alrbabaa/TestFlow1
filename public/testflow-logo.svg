@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" fill="none">
+  <defs>
+    <linearGradient id="tf-cyan-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+    <linearGradient id="tf-blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="tf-accent-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE"/>
+      <stop offset="100%" stop-color="#4FACFE"/>
+    </linearGradient>
+    <filter id="tf-glow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0284C7" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Icon Mark: Modern 3D Ribbon T with integrated dynamic flow -->
+  <g transform="translate(6, 6)" filter="url(#tf-glow)">
+    <!-- Background rounded square plate -->
+    <rect x="0" y="0" width="52" height="52" rx="14" fill="#0F172A"/>
+    
+    <!-- Top Horizontal Ribbon Bar of 'T' -->
+    <path d="M12 16C12 14.8954 12.8954 14 14 14H38C39.1046 14 40 14.8954 40 16V22C40 23.1046 39.1046 24 38 24H14C12.8954 24 12 23.1046 12 22V16Z" fill="url(#tf-cyan-grad)"/>
+    
+    <!-- Vertical Folded Stem of 'T' -->
+    <path d="M22 22H30V38C30 39.1046 29.1046 40 28 40H24C22.8954 40 22 39.1046 22 38V22Z" fill="url(#tf-blue-grad)"/>
+
+    <!-- Dynamic Flow Checkmark Accent -->
+    <path d="M18 29L24 35L36 21" stroke="url(#tf-accent-grad)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Precision dot accent -->
+    <circle cx="36" cy="21" r="2.5" fill="#38BDF8"/>
+  </g>
+
+  <!-- Brand Typography -->
+  <g transform="translate(70, 42)">
+    <text font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="28" letter-spacing="-0.5">
+      <tspan fill="#0F172A">Test</tspan>
+      <tspan fill="#0284C7">Flow</tspan>
+    </text>
+    <!-- Subtle Tagline or Tech Dot -->
+    <circle cx="132" cy="-22" r="3.5" fill="#0284C7"/>
+  </g>
+</svg>

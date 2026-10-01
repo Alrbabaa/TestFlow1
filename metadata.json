@@ -1,0 +1,6 @@
+{
+  "name": "TestFlow - منصة إدارة مختبري التطبيقات",
+  "description": "منصة ويب متكاملة لإدارة مختبري التطبيقات قبل النشر على المتاجر (Google Play Closed Testing & TestFlight)، لربط المطورين بمختبرين حقيقيين ومتابعة المهام والملاحظات.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
