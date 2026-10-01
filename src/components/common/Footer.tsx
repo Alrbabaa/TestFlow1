@@ -1,15 +1,17 @@
 import React from 'react';
 import { TestFlowLogo } from './TestFlowLogo';
-import { Shield, Lock, Trash2, CheckCircle2 } from 'lucide-react';
+import { Shield, Lock, Trash2, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface FooterProps {
   onOpenLegal: (tab: 'privacy' | 'terms' | 'deletion') => void;
   onDeveloperAccess: () => void;
+  onAdminAccess: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onOpenLegal,
   onDeveloperAccess,
+  onAdminAccess,
 }) => {
   return (
     <footer className="bg-slate-950 text-slate-300 pt-12 pb-8 border-t border-slate-800/80">
@@ -88,6 +90,18 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
             </ul>
           </div>
+        </div>
+
+        <div className="pt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={onAdminAccess}
+            aria-label="تسجيل دخول الإدارة"
+            title="تسجيل دخول الإدارة"
+            className="p-1 text-slate-600 opacity-40 hover:text-slate-300 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 rounded transition"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
         </div>
 
         {/* Bottom copyright */}

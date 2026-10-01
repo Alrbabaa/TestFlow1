@@ -110,6 +110,20 @@ function MainAppContent() {
     setIsDevRegisterOpen(true);
   };
 
+  // This entry point is intentionally discreet. Google authentication only
+  // identifies the user; server-side role checks remain authoritative.
+  const handleAdminAccess = async () => {
+    const signedInUser = await signInWithGoogle();
+    if (!signedInUser) return;
+
+    if (await refreshUserRole() === 'admin') {
+      navigate('/admin');
+      return;
+    }
+
+    window.alert('هذا الحساب غير مصرح له بالوصول إلى لوحة الإدارة.');
+  };
+
   if (pathname === '/admin') {
     if (loading || roleLoading) {
       return <div className="min-h-screen bg-slate-950" aria-label="جارٍ التحقق من الصلاحية" />;
@@ -158,6 +172,7 @@ function MainAppContent() {
       <Footer
         onOpenLegal={(tab) => setLegalModalState({ isOpen: true, tab })}
         onDeveloperAccess={() => void handleDeveloperAccess()}
+        onAdminAccess={() => void handleAdminAccess()}
       />
 
       {/* Modals */}
