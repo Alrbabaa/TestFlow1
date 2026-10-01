@@ -92,15 +92,16 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
         </div>
 
-        <div className="pt-4 flex justify-end">
+        <div className="pt-5 flex justify-center border-t border-slate-800/50 mt-6">
           <button
             type="button"
             onClick={onAdminAccess}
             aria-label="تسجيل دخول الإدارة"
             title="تسجيل دخول الإدارة"
-            className="p-1 text-slate-600 opacity-40 hover:text-slate-300 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 rounded transition"
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/50 px-2 py-1 text-[10px] font-medium text-slate-500 hover:border-slate-700 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 transition"
           >
             <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>دخول الإدارة</span>
           </button>
         </div>
 
