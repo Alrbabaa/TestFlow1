@@ -26,7 +26,7 @@ export async function getOrCreateUser(uid: string, email: string, name?: string,
 
     return result[0];
   } catch (error) {
-    console.error('Failed to get or create user in Cloud SQL.');
+    console.error('Failed to get or create user in Cloud SQL:', error);
     throw new Error('Database operation failed for user profile.', { cause: error });
   }
 }
