@@ -88,8 +88,8 @@ app.post('/api/users/sync', requireAuth, async (req: AuthRequest, res) => {
     const user = await getOrCreateUser(req.user.uid, email, name, adminUids);
     res.json({ user });
   } catch (error: any) {
-    console.error(`User sync failed (${safeDatabaseErrorCode(error)}).`);
-      res.status(503).json({ error: 'Account storage is temporarily unavailable.' });
+    console.error('USER SYNC REAL ERROR:', error);
+    res.status(503).json({ error: 'Account storage is temporarily unavailable.' });
   }
 });
 
