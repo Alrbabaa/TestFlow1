@@ -88,13 +88,26 @@ app.post('/api/users/sync', requireAuth, async (req: AuthRequest, res) => {
     }
 
     const { name } = req.body || {};
-    const email = await resolveFirebaseEmail(req.user.uid, req.user.email);
+    let email: string | null;
+    try {
+      email = await resolveFirebaseEmail(req.user.uid, req.user.email);
+    } catch (error) {
+      console.error('User sync failed while resolving the Firebase user record.', safeErrorDetails(error));
+      return res.status(503).json({ error: 'Account identity is temporarily unavailable.' });
+    }
 
     if (!email) {
       return res.status(400).json({ error: 'User email not available' });
     }
 
-    const user = await getOrCreateUser(req.user.uid, email, name, configuredAdminUids());
+    let user: Awaited<ReturnType<typeof getOrCreateUser>>;
+    try {
+      user = await getOrCreateUser(req.user.uid, email, name, configuredAdminUids());
+    } catch (error) {
+      console.error('User sync failed while persisting the Cloud SQL profile.', safeErrorDetails(error));
+      return res.status(503).json({ error: 'Account storage is temporarily unavailable.' });
+    }
+
     res.json({ user });
   } catch (error: any) {
     console.error('User sync failed.', safeErrorDetails(error));
