@@ -4,6 +4,7 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { requireAuth, requireRole, AuthRequest } from './src/middleware/auth.ts';
+import { adminAuth } from './src/lib/firebase-admin.ts';
 import {
   getOrCreateUser,
   getAllCampaigns,
@@ -67,12 +68,24 @@ app.get('/api/health', async (_req, res) => {
 // User sync (Firebase Auth to Cloud SQL)
 app.post('/api/users/sync', requireAuth, async (req: AuthRequest, res) => {
   try {
-    if (!req.user || !req.user.uid || !req.user.email) {
-      return res.status(400).json({ error: 'User information missing in token' });
+    if (!req.user?.uid) {
+      return res.status(400).json({ error: 'User UID missing in token' });
     }
+
     const { name } = req.body || {};
+    let email = req.user.email;
+
+    if (!email) {
+      const firebaseUser = await adminAuth.getUser(req.user.uid);
+      email = firebaseUser.email;
+    }
+
+    if (!email) {
+      return res.status(400).json({ error: 'User email not available' });
+    }
+
     const adminUids = (process.env.ADMIN_UIDS || '').split(',').map((uid) => uid.trim()).filter(Boolean);
-    const user = await getOrCreateUser(req.user.uid, req.user.email, name, adminUids);
+    const user = await getOrCreateUser(req.user.uid, email, name, adminUids);
     res.json({ user });
   } catch (error: any) {
     console.error(`User sync failed (${safeDatabaseErrorCode(error)}).`);
