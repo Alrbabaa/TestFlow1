@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema.ts';
-import { resolveDatabaseConfiguration, safeDatabaseErrorCode } from './config.ts';
+import { resolveDatabaseConfiguration, safeErrorDetails } from './config.ts';
 
 const databaseConfiguration = resolveDatabaseConfiguration();
 
@@ -20,7 +20,7 @@ export const createPool = () => {
 
     // Prevent unhandled pool-level errors from crashing the application
     global._postgresPool.on('error', (err) => {
-      console.error(`Unexpected Cloud SQL pool error (${safeDatabaseErrorCode(err)}).`);
+      console.error('Unexpected Cloud SQL pool error.', safeErrorDetails(err));
     });
   }
   return global._postgresPool;

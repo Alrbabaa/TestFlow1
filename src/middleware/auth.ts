@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { adminAuth } from '../lib/firebase-admin.ts';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { getUserByUid } from '../db/helpers.ts';
+import { safeErrorDetails } from '../db/config.ts';
 
 export interface AuthRequest extends Request {
   user?: DecodedIdToken;
@@ -23,7 +24,7 @@ export const requireAuth = async (
     req.user = decodedToken;
     next();
   } catch (error) {
-    console.error('Error verifying Firebase ID token:', error);
+    console.warn('Firebase ID token verification failed.', safeErrorDetails(error));
     return res.status(401).json({ error: 'Unauthorized: Invalid token' });
   }
 };
@@ -62,7 +63,7 @@ export const requireRole = (...roles: string[]) => async (
     }
     next();
   } catch (error) {
-    console.error('Failed to verify user role:', error);
+    console.error('Failed to verify user role.', safeErrorDetails(error));
     return res.status(503).json({ error: 'Unable to verify permissions' });
   }
 };

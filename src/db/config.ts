@@ -9,16 +9,68 @@ export interface DatabaseConfiguration {
 
 const SSL_MODES = new Set(['disable', 'require', 'verify-ca', 'verify-full']);
 
+type ErrorRecord = {
+  name?: unknown;
+  message?: unknown;
+  code?: unknown;
+  errorInfo?: { code?: unknown; message?: unknown };
+  cause?: unknown;
+};
+
+const redactErrorMessage = (value: string) => value
+  .replace(/(?:postgres(?:ql)?:\/\/)[^\s@/]+@/gi, 'postgresql://[REDACTED]@')
+  .replace(/\b(password|pwd|token|authorization)\s*[=:]\s*[^\s,;]+/gi, '$1=[REDACTED]')
+  .replace(/\bBearer\s+[^\s,;]+/gi, 'Bearer [REDACTED]')
+  .slice(0, 500);
+
+const getErrorCode = (error: ErrorRecord): string | null => {
+  const candidate = error.code ?? error.errorInfo?.code;
+  if (typeof candidate !== 'string' || !candidate.trim()) return null;
+  return candidate.trim().slice(0, 100);
+};
+
+/**
+ * Produces Cloud Run-safe error context for logs without serializing tokens,
+ * passwords, connection strings, or the complete provider error object.
+ */
+export function safeErrorDetails(error: unknown): {
+  code: string;
+  message: string;
+  cause?: { code: string; message: string };
+} {
+  const chain: Array<{ code: string; message: string }> = [];
+  let current: unknown = error;
+
+  for (let depth = 0; depth < 4 && current && typeof current === 'object'; depth++) {
+    const candidate = current as ErrorRecord;
+    const code = getErrorCode(candidate) ||
+      (typeof candidate.name === 'string' && candidate.name ? candidate.name.slice(0, 100) : 'unknown_error');
+    const message = typeof candidate.message === 'string'
+      ? redactErrorMessage(candidate.message)
+      : typeof candidate.errorInfo?.message === 'string'
+        ? redactErrorMessage(candidate.errorInfo.message)
+        : 'No error message supplied.';
+    chain.push({ code, message });
+    current = candidate.cause;
+  }
+
+  const [primary = { code: 'unknown_error', message: 'Unknown error.' }, cause] = chain;
+  return cause ? { ...primary, cause } : primary;
+}
+
 export function safeDatabaseErrorCode(error: unknown): string {
   let current: unknown = error;
+  let fallback = 'unknown_error';
   for (let depth = 0; depth < 3 && current && typeof current === 'object'; depth++) {
-    const candidate = current as { code?: unknown; cause?: unknown };
-    if (typeof candidate.code === 'string' && /^[A-Z0-9_]{2,16}$/.test(candidate.code)) {
-      return candidate.code;
+    const candidate = current as ErrorRecord;
+    const code = getErrorCode(candidate);
+    if (code) return code;
+    if (typeof candidate.name === 'string' && candidate.name.trim()) {
+      fallback = candidate.name.trim().slice(0, 100);
     }
     current = candidate.cause;
   }
-  return 'unclassified';
+  return fallback;
 }
 
 export function resolveDatabaseConfiguration(): DatabaseConfiguration {

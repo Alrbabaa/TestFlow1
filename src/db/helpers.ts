@@ -1,24 +1,28 @@
 import { db } from './index.ts';
 import { users, developers, apps, campaigns, campaignRewards, applications, bugReports, feedbacks } from './schema.ts';
 import { eq, desc, inArray, sql, and } from 'drizzle-orm';
+import { safeErrorDetails } from './config.ts';
 
 // 1. User helpers
 export async function getOrCreateUser(uid: string, email: string, name?: string, adminUids: string[] = []) {
   try {
     const isConfiguredAdmin = adminUids.includes(uid);
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedName = typeof name === 'string' ? name.trim().slice(0, 120) : undefined;
+    if (!normalizedEmail) throw new Error('Firebase user record did not contain an email address.');
     const result = await db
       .insert(users)
       .values({
         uid,
-        email,
-        name: name || null,
+        email: normalizedEmail,
+        name: normalizedName || null,
         role: isConfiguredAdmin ? 'admin' : 'tester',
       })
       .onConflictDoUpdate({
         target: users.uid,
         set: {
-          email,
-          ...(name ? { name } : {}),
+          email: normalizedEmail,
+          ...(normalizedName ? { name: normalizedName } : {}),
           ...(isConfiguredAdmin ? { role: 'admin' } : {}),
         },
       })
@@ -26,7 +30,7 @@ export async function getOrCreateUser(uid: string, email: string, name?: string,
 
     return result[0];
   } catch (error) {
-    console.error('Failed to get or create user in Cloud SQL:', error);
+    console.error('Failed to get or create user in Cloud SQL.', safeErrorDetails(error));
     throw new Error('Database operation failed for user profile.', { cause: error });
   }
 }

@@ -32,7 +32,7 @@ import {
   seedDatabaseIfEmpty,
 } from './src/db/helpers.ts';
 import { checkDatabaseHealth } from './src/db/index.ts';
-import { safeDatabaseErrorCode } from './src/db/config.ts';
+import { safeDatabaseErrorCode, safeErrorDetails } from './src/db/config.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +47,21 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
+
+const configuredAdminUids = () => Array.from(new Set(
+  (process.env.ADMIN_UIDS || '')
+    .split(',')
+    .map((uid) => uid.trim())
+    .filter(Boolean)
+));
+
+const resolveFirebaseEmail = async (uid: string, tokenEmail?: string) => {
+  const emailFromToken = tokenEmail?.trim().toLowerCase();
+  if (emailFromToken) return emailFromToken;
+
+  const firebaseUser = await adminAuth.getUser(uid);
+  return firebaseUser.email?.trim().toLowerCase() || null;
+};
 
 // Seed initial data once lazily
 seedDatabaseIfEmpty().catch((err) => {
@@ -73,22 +88,16 @@ app.post('/api/users/sync', requireAuth, async (req: AuthRequest, res) => {
     }
 
     const { name } = req.body || {};
-    let email = req.user.email;
-
-    if (!email) {
-      const firebaseUser = await adminAuth.getUser(req.user.uid);
-      email = firebaseUser.email;
-    }
+    const email = await resolveFirebaseEmail(req.user.uid, req.user.email);
 
     if (!email) {
       return res.status(400).json({ error: 'User email not available' });
     }
 
-    const adminUids = (process.env.ADMIN_UIDS || '').split(',').map((uid) => uid.trim()).filter(Boolean);
-    const user = await getOrCreateUser(req.user.uid, email, name, adminUids);
+    const user = await getOrCreateUser(req.user.uid, email, name, configuredAdminUids());
     res.json({ user });
   } catch (error: any) {
-    console.error('USER SYNC REAL ERROR:', error);
+    console.error('User sync failed.', safeErrorDetails(error));
     res.status(503).json({ error: 'Account storage is temporarily unavailable.' });
   }
 });
@@ -99,7 +108,7 @@ app.get('/api/users/me', requireAuth, async (req: AuthRequest, res) => {
     if (!user) return res.status(404).json({ error: 'User profile not found' });
     res.json({ role: user.role });
   } catch (error: any) {
-    console.error(`Could not load user role (${safeDatabaseErrorCode(error)}).`);
+    console.error('Could not load user role.', safeErrorDetails(error));
     res.status(503).json({ error: 'Unable to load account permissions' });
   }
 });

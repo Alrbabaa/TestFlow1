@@ -37,6 +37,12 @@ The pool reads these settings only in the server process. Use Secret Manager or 
 6. Deploy the revision with the runtime service account from step 2. Cloud Run's integration authenticates to Cloud SQL with that identity; no service-account key file and no standalone proxy process are required.
 7. With these real environment variables configured, run `npm run db:migrate`, `npm run db:verify`, and `npm run db:smoke` from a Cloud Run job or other environment attached to the same Cloud SQL instance. Then verify `GET /api/health` on the deployed service returns HTTP 200 with `server: "ok"` and `database: { "status": "ok" }`.
 
+## Firebase Admin on Cloud Run
+
+The Firebase client and Firebase Admin SDK both read `firebase-applet-config.json`, so they target the same Firebase project. The Admin SDK initializes with Application Default Credentials, which Cloud Run supplies through the runtime service account; do not add a local service-account key to the image or set `GOOGLE_APPLICATION_CREDENTIALS` in Cloud Run.
+
+Grant the Cloud Run runtime service account `Firebase Authentication Admin` (`roles/firebaseauth.admin`) in addition to `Cloud SQL Client` and `Secret Manager Secret Accessor`. This allows the server to verify ID tokens and retrieve an authenticated Firebase user's email when an ID token does not include it.
+
 ## Local Auth Proxy workflow
 
 1. Create or select the Google Cloud project and Cloud SQL PostgreSQL instance. Enable the Cloud SQL Admin API.

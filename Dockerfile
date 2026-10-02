@@ -22,6 +22,7 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/dist-server ./dist-server
 COPY --from=build /app/src/db ./src/db
 COPY --from=build /app/drizzle ./drizzle
+COPY --from=build /app/scripts ./scripts
 RUN groupadd --system testflow && useradd --system --gid testflow testflow \
   && chown -R testflow:testflow /app
 USER testflow
