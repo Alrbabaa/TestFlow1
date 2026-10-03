@@ -1,8 +1,10 @@
 # TestFlow — Firebase + Vercel
 
 TestFlow is a Vite/React client application using Firebase Authentication and
-Cloud Firestore only. There is no Express server, Cloud Run service, Cloud SQL
-database, Drizzle ORM, Firebase Admin SDK, service-account key, or runtime secret.
+Cloud Firestore for application data. There is no Express server, Cloud Run
+service, Cloud SQL database, or Drizzle ORM. A single Vercel Function uses
+Firebase Admin and Resend only to deliver a private testing link after the
+campaign owner explicitly approves a tester.
 
 ## Firestore collections
 
@@ -44,8 +46,24 @@ Never leave Firebase's temporary test Rules enabled.
 3. Select Vite; build command npm run build; output directory dist.
 4. Add all VITE_FIREBASE_* variables for Production, Preview, and Development.
    These are public Firebase web identifiers, not service-account credentials.
-5. Deploy. vercel.json rewrites every route to index.html, so refresh works for
+5. For Production, add the server-only variables RESEND_API_KEY,
+   RESEND_FROM_EMAIL, and FIREBASE_ADMIN_SERVICE_ACCOUNT. Do not prefix these
+   variables with VITE_ or expose their values to the browser. For local Vercel
+   Function testing, they may be kept in an uncommitted .env.local file.
+   FIREBASE_ADMIN_SERVICE_ACCOUNT must be valid service account JSON (or its
+   base64 encoding) for this Firebase project.
+6. Deploy. vercel.json rewrites every route to index.html, so refresh works for
    /admin, /developer, and /campaign/rawnak.
+
+## Sending a tester invitation
+
+The owner must first accept the tester, add their submitted email to the Google
+Play closed-test or TestFlight list, then select **ready_to_join**. The
+**Send test link** button calls `POST /api/send-tester-invitation` with a
+Firebase ID token. The function verifies the token, campaign ownership (or
+administrator role), application/campaign relationship, and readiness state on
+the server before reading the private `testUrl` and sending the email through
+Resend. The browser never receives the private test URL.
 
 ## First campaign: Rawnak / رونق
 
