@@ -100,7 +100,12 @@ export const subscribeApplications = (uid: string, admin: boolean, callback: (it
 );
 
 export const submitDeveloperRequest = (uid: string, input: { name: string; companyName: string; email: string; bio?: string }) => setDoc(doc(db, 'developerRequests', uid), {
-  uid, ...input, status: 'pending', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  uid,
+  name: input.name,
+  companyName: input.companyName,
+  email: input.email,
+  ...(input.bio ? { bio: input.bio } : {}),
+  status: 'pending', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
 }, { merge: true });
 
 export const submitApplication = async (campaign: AppCampaign, input: Omit<TesterApplication, 'id' | 'campaignId' | 'appName' | 'appIcon' | 'platform' | 'status' | 'appliedAt' | 'currentDay' | 'completedTaskIds' | 'activityScore' | 'lastActiveDate'>, emailKey: string) => {
