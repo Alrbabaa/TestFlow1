@@ -138,7 +138,11 @@ export const createCampaign = async (campaign: AppCampaign) => {
 };
 
 export const updateCampaignDocuments = async (id: string, updates: Partial<AppCampaign>) => {
-  const { testUrl, developerId, id: _id, createdAt, currentTestersCount, ...publicUpdates } = updates;
+  const { testUrl } = updates;
+  // Keep updates aligned with the public document and its Security Rules.
+  // In particular, never leak testUrl or reassign developerId.
+  const allowedPublicKeys: (keyof AppCampaign)[] = ['name', 'slug', 'developerName', 'platform', 'testType', 'category', 'tagline', 'description', 'campaignGoal', 'iconUrl', 'durationDays', 'requiredTestersCount', 'status', 'rewardTitle', 'rewardValue', 'testingInstructions'];
+  const publicUpdates = Object.fromEntries(allowedPublicKeys.flatMap((key) => updates[key] === undefined ? [] : [[key, updates[key]]]));
   if (Object.keys(publicUpdates).length) await updateDoc(doc(db, 'publicCampaigns', id), { ...publicUpdates, updatedAt: serverTimestamp() });
   if (typeof testUrl === 'string') await updateDoc(doc(db, 'campaignPrivate', id), { testUrl, updatedAt: serverTimestamp() });
 };
