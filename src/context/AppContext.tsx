@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { createCampaign as createFirestoreCampaign, decideDeveloperRequest, setUserRole, submitApplication as submitFirestoreApplication, submitDeveloperRequest, subscribeApplications, subscribeDeveloperRequests, subscribePrivateCampaigns, subscribePublicCampaigns, subscribeWorkspaceCampaigns, updateApplication as updateFirestoreApplication, updateCampaignDocuments, deleteCampaignDocuments } from '../lib/firestore';
+import { createCampaign as createFirestoreCampaign, decideDeveloperRequest, ensureCampaignSlug, setUserRole, submitApplication as submitFirestoreApplication, submitDeveloperRequest, subscribeApplications, subscribeDeveloperRequests, subscribePrivateCampaigns, subscribePublicCampaigns, subscribeWorkspaceCampaigns, updateApplication as updateFirestoreApplication, updateCampaignDocuments, deleteCampaignDocuments } from '../lib/firestore';
 import { useAuth } from './AuthContext';
 import type { AppCampaign, BugReport, DeveloperUser, EmailNotification, ReputationLevel, SecurityAuditEntry, TesterApplication, TesterFeedback, TesterStatus, TesterUser, UserRole } from '../types';
 
@@ -41,6 +41,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [developers, setDevelopers] = useState<DeveloperUser[]>([]); const [testers, setTesters] = useState<TesterUser[]>([]);
   const [bugReports, setBugReports] = useState<BugReport[]>([]); const [feedbacks, setFeedbacks] = useState<TesterFeedback[]>([]); const [emails, setEmails] = useState<EmailNotification[]>([]);
   const [securityLogs, setSecurityLogs] = useState<SecurityAuditEntry[]>([]); const [selectedCampaignSlug, setSelectedCampaignSlug] = useState<string | null>(null); const [activeTab, setActiveTab] = useState('home'); const [toast, setToast] = useState<Toast>(null);
+  const registeredSlugCampaigns = useRef(new Set<string>());
   const [isEmailMasked, setIsEmailMasked] = useState(true); const [isLockdownMode, setIsLockdownMode] = useState(false); const [isAntiBotEnabled, setIsAntiBotEnabled] = useState(true); const [isWatermarkEnforced, setIsWatermarkEnforced] = useState(true); const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
   const [roleOverride, setCurrentUserRole] = useState<UserRole>('tester'); const [currentTester, setCurrentTester] = useState<TesterUser>(emptyTester); const [currentDeveloper, setCurrentDeveloper] = useState<DeveloperUser>(emptyDeveloper);
   const currentUserRole = (userRole === 'admin' || userRole === 'developer') ? userRole : 'tester';
@@ -51,6 +52,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const privileged = user && !roleLoading && (userRole === 'admin' || userRole === 'developer');
     return privileged ? subscribeWorkspaceCampaigns(user.uid, userRole === 'admin', setCampaigns) : subscribePublicCampaigns(setCampaigns);
   }, [user, userRole, roleLoading]);
+  useEffect(() => {
+    if (userRole !== 'admin') return;
+    campaigns.forEach((campaign) => {
+      if (registeredSlugCampaigns.current.has(campaign.id)) return;
+      registeredSlugCampaigns.current.add(campaign.id);
+      void ensureCampaignSlug(campaign).catch(() => registeredSlugCampaigns.current.delete(campaign.id));
+    });
+  }, [campaigns, userRole]);
   useEffect(() => {
     if (!user || roleLoading || (userRole !== 'admin' && userRole !== 'developer')) { setApplications([]); return; }
     const admin = userRole === 'admin'; let privateData = new Map<string, any>();

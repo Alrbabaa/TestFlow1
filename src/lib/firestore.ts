@@ -142,6 +142,14 @@ export const createCampaign = async (campaign: AppCampaign) => {
   await batch.commit();
 };
 
+export const ensureCampaignSlug = async (campaign: AppCampaign) => {
+  const slug = campaign.slug.trim().toLowerCase();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return;
+  const slugRef = doc(db, 'campaignSlugs', slug);
+  if ((await getDoc(slugRef)).exists()) return;
+  await setDoc(slugRef, { campaignId: campaign.id, developerId: campaign.developerId, createdAt: serverTimestamp() });
+};
+
 export const updateCampaignDocuments = async (id: string, updates: Partial<AppCampaign>) => {
   const { testUrl } = updates;
   // Keep updates aligned with the public document and its Security Rules.

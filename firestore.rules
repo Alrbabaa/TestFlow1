@@ -30,7 +30,7 @@ service cloud.firestore {
     }
     match /campaignSlugs/{slug} {
       allow get: if signedIn();
-      allow create: if (isAdmin() || isDeveloper()) && !exists(/databases/$(database)/documents/campaignSlugs/$(slug)) && request.resource.data.developerId == request.auth.uid && getAfter(/databases/$(database)/documents/publicCampaigns/$(request.resource.data.campaignId)).data.developerId == request.auth.uid && getAfter(/databases/$(database)/documents/publicCampaigns/$(request.resource.data.campaignId)).data.slug == slug;
+      allow create: if (isAdmin() || isDeveloper()) && !exists(/databases/$(database)/documents/campaignSlugs/$(slug)) && (isAdmin() || request.resource.data.developerId == request.auth.uid) && getAfter(/databases/$(database)/documents/publicCampaigns/$(request.resource.data.campaignId)).data.developerId == request.resource.data.developerId && getAfter(/databases/$(database)/documents/publicCampaigns/$(request.resource.data.campaignId)).data.slug == slug;
       allow delete: if isAdmin() || (isDeveloper() && resource.data.developerId == request.auth.uid);
     }
     match /campaignPrivate/{id} {
