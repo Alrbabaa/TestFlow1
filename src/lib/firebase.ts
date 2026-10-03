@@ -2,8 +2,6 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
-import type { FirebaseStorage } from 'firebase/storage';
 
 // Firebase's web configuration identifies the project; it is not a server
 // credential. Values are injected by Vite/Vercel and must never contain an
@@ -41,7 +39,6 @@ export const db = (app ? initializeFirestore(app, {
   experimentalForceLongPolling: true,
   experimentalLongPollingOptions: { timeoutSeconds: 25 },
 }) : undefined) as unknown as Firestore;
-export const storage = (app ? getStorage(app) : undefined) as unknown as FirebaseStorage;
 export const googleAuthProvider = new GoogleAuthProvider();
 googleAuthProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
 googleAuthProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
