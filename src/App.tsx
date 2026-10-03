@@ -14,6 +14,7 @@ import { LegalModal } from './components/legal/LegalModal';
 import { HowItWorksModal } from './components/common/HowItWorksModal';
 import { Toast } from './components/common/Toast';
 import { AppCampaign } from './types';
+import { firebaseConfigError } from './lib/firebase';
 
 function MainAppContent() {
   const {
@@ -212,6 +213,18 @@ function MainAppContent() {
 }
 
 export default function App() {
+  if (firebaseConfigError) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white grid place-items-center p-6" dir="rtl">
+        <section className="w-full max-w-xl rounded-2xl border border-amber-500/30 bg-slate-900 p-6 space-y-3">
+          <h1 className="text-xl font-bold text-amber-300">إعداد Firebase مطلوب</h1>
+          <p className="text-sm text-slate-300">لا يمكن تشغيل TestFlow قبل إضافة متغيرات Firebase إلى بيئة Vercel أو ملف .env.local.</p>
+          <code className="block rounded-lg bg-slate-950 p-3 text-xs text-amber-200 break-words">{firebaseConfigError}</code>
+          <p className="text-xs text-slate-400">استخدم أسماء المتغيرات الموجودة في .env.example ثم أعد النشر.</p>
+        </section>
+      </main>
+    );
+  }
   return (
     <AuthProvider>
       <AppProvider>
