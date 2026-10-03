@@ -6,6 +6,7 @@ service cloud.firestore {
     function isDeveloper() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'developer'; }
     function manages(id) { return isAdmin() || (isDeveloper() && get(/databases/$(database)/documents/campaignPrivate/$(id)).data.developerId == request.auth.uid); }
     function text(v, n) { return v is string && v.size() > 0 && v.size() <= n; }
+    function optionalText(v, n) { return v is string && v.size() <= n; }
     function campaignFields() { return ['name','slug','developerId','developerName','platform','testType','category','tagline','description','campaignGoal','iconUrl','durationDays','requiredTestersCount','currentTestersCount','status','rewardTitle','rewardValue','testingInstructions','createdAt','updatedAt']; }
 
     match /users/{uid} {
@@ -34,7 +35,7 @@ service cloud.firestore {
       allow delete: if manages(id);
     }
     match /applications/{id} {
-      allow create: if !exists(/databases/$(database)/documents/applications/$(id)) && id == request.resource.data.campaignId + '_' + request.resource.data.emailKey && get(/databases/$(database)/documents/publicCampaigns/$(request.resource.data.campaignId)).data.status == 'active' && request.resource.data.developerId == get(/databases/$(database)/documents/campaignPrivate/$(request.resource.data.campaignId)).data.developerId && text(request.resource.data.testerName,120) && text(request.resource.data.testerEmail,254) && text(request.resource.data.googlePlayEmail,254) && text(request.resource.data.deviceModel,160) && request.resource.data.osType in ['android','ios'] && request.resource.data.status == 'pending';
+      allow create: if !exists(/databases/$(database)/documents/applications/$(id)) && id == request.resource.data.campaignId + '_' + request.resource.data.emailKey && get(/databases/$(database)/documents/publicCampaigns/$(request.resource.data.campaignId)).data.status == 'active' && request.resource.data.developerId == get(/databases/$(database)/documents/campaignPrivate/$(request.resource.data.campaignId)).data.developerId && text(request.resource.data.testerName,120) && text(request.resource.data.testerEmail,254) && optionalText(request.resource.data.googlePlayEmail,254) && optionalText(request.resource.data.deviceModel,160) && optionalText(request.resource.data.testerCountry,120) && optionalText(request.resource.data.osVersion,80) && request.resource.data.osType in ['android','ios'] && request.resource.data.status == 'pending';
       allow get, list: if signedIn() && manages(resource.data.campaignId);
       allow update: if signedIn() && manages(resource.data.campaignId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','developerNotes','updatedAt']) && request.resource.data.status in ['pending','accepted','waiting_for_whitelisting','ready_to_join','joined','active','completed','inactive','rejected'];
       allow delete: if signedIn() && manages(resource.data.campaignId);

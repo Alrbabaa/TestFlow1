@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ImageUp, Link, LoaderCircle, Trash2 } from 'lucide-react';
 import { AppIconImage } from './AppIconImage';
-import { uploadCampaignImage, validateCampaignImage } from '../../lib/cloudinary';
+import { uploadCampaignImage, validateCampaignImage } from '../../lib/campaign-image-storage';
+import { useAuth } from '../../context/AuthContext';
 
 interface CampaignImageUploaderProps {
   value: string;
@@ -17,6 +18,7 @@ const isHttpsUrl = (value: string) => {
 };
 
 export const CampaignImageUploader: React.FC<CampaignImageUploaderProps> = ({ value, appName, category, disabled = false, onChange, onUploadStateChange }) => {
+  const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -36,7 +38,7 @@ export const CampaignImageUploader: React.FC<CampaignImageUploaderProps> = ({ va
     if (localPreview) URL.revokeObjectURL(localPreview);
     setLocalPreview(URL.createObjectURL(file)); setFileName(file.name); setError(''); changeUploadState(true);
     try {
-      const secureUrl = await uploadCampaignImage(file);
+      const secureUrl = await uploadCampaignImage(file, user?.uid || '');
       onChange(secureUrl); setLocalPreview('');
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'فشل رفع الصورة.'); }
     finally { changeUploadState(false); }

@@ -1,0 +1,24 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.uid in ['UEqGXe9B52Wp0T5sXfxcC72a5mq2', 'hJMZ8MAYrcRjHEOzxidDQwTjMI52']; }
+    function isDeveloper() {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'developer';
+    }
+    function validImage() {
+      return request.resource.size <= 3 * 1024 * 1024
+        && request.resource.contentType in ['image/png', 'image/jpeg', 'image/webp'];
+    }
+
+    // Campaign icons are intentionally public because their URLs are saved in
+    // publicCampaigns. Upload ownership remains restricted to admins/developers.
+    match /campaigns/{ownerUid}/{fileName} {
+      allow read: if true;
+      allow create, update: if validImage() && (isAdmin() || (isDeveloper() && request.auth.uid == ownerUid));
+      allow delete: if isAdmin() || (isDeveloper() && request.auth.uid == ownerUid);
+    }
+  }
+}

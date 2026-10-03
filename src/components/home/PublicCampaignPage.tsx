@@ -30,6 +30,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -39,8 +40,6 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
     osType: (campaign.platform === 'ios' ? 'ios' : 'android') as 'android' | 'ios',
     osVersion: campaign.platform === 'ios' ? 'iOS 18' : 'Android 14',
     deviceModel: '',
-    agreedToTerms: false,
-    agreedToTesting: false,
   });
 
   const existingApp = applications.find(
@@ -329,37 +328,44 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
             </div>
           ) : (
             <form onSubmit={handleSubmitApplication} className="max-w-3xl mx-auto space-y-5">
-              <div className="space-y-1">
-                <h2 className="text-lg sm:text-xl font-black text-slate-900">قدّم طلب الانضمام</h2>
-                <p className="text-xs text-slate-500">لا تحتاج إلى إنشاء حساب. سنستخدم بياناتك لمراجعة توافق جهازك مع الحملة.</p>
+              <div className="rounded-2xl bg-blue-50 p-5 text-center space-y-2">
+                <h2 className="text-lg sm:text-xl font-black text-slate-900">سجّل اهتمامك بالتجربة</h2>
+                <p className="text-sm text-slate-600">أدخل اسمك وبريدك فقط، وسنتواصل معك إذا تم قبولك.</p>
               </div>
 
               {errorMessage && <div role="alert" className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">{errorMessage}</div>}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">
-                  الاسم الكامل
-                  <input required autoComplete="name" value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
+                  الاسم <span className="text-rose-600">*</span>
+                  <input required autoComplete="name" placeholder="اكتب اسمك" value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="w-full h-11 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
                 </label>
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">
-                  بريد التواصل (Gmail)
-                  <input required type="email" autoComplete="email" placeholder="name@gmail.com" value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
+                  البريد الإلكتروني <span className="text-rose-600">*</span>
+                  <input required type="email" autoComplete="email" placeholder="name@gmail.com" value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} className="w-full h-11 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
+                </label>
+              </div>
+
+              <button type="button" onClick={() => setShowOptionalDetails((visible) => !visible)} className="text-sm font-bold text-blue-700 hover:text-blue-800">
+                {showOptionalDetails ? 'إخفاء المعلومات الاختيارية' : 'إضافة معلومات اختيارية تساعدنا في المطابقة'}
+              </button>
+
+              {showOptionalDetails && <div className="grid grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+                <label className="space-y-1.5 text-xs font-bold text-slate-700">
+                  {formData.osType === 'android' ? 'بريد Google Play (اختياري)' : 'بريد Apple ID (اختياري)'}
+                  <input type="email" placeholder={formData.osType === 'android' ? 'play-account@gmail.com' : 'apple-id@icloud.com'} value={formData.googlePlayEmail} onChange={(event) => setFormData({ ...formData, googlePlayEmail: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
                 </label>
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">
-                  {formData.osType === 'android' ? 'بريد Google Play' : 'بريد Apple ID'}
-                  <input required type="email" placeholder={formData.osType === 'android' ? 'play-account@gmail.com' : 'apple-id@icloud.com'} value={formData.googlePlayEmail} onChange={(event) => setFormData({ ...formData, googlePlayEmail: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
-                </label>
-                <label className="space-y-1.5 text-xs font-bold text-slate-700">
-                  الدولة
-                  <select required value={formData.country} onChange={(event) => setFormData({ ...formData, country: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden">
-                    <option value="">اختر الدولة</option>
+                  الدولة (اختيارية)
+                  <select value={formData.country} onChange={(event) => setFormData({ ...formData, country: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden">
+                    <option value="">لا أرغب بتحديد الدولة</option>
                     {campaign.targetCountries.map((country) => <option key={country} value={country}>{country}</option>)}
                     <option value="دولة أخرى">دولة أخرى</option>
                   </select>
                 </label>
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">
-                  نوع الجهاز وطرازه
-                  <input required value={formData.deviceModel} onChange={(event) => setFormData({ ...formData, deviceModel: event.target.value })} placeholder="مثال: Samsung Galaxy S24" className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
+                  الجهاز وطرازه (اختياري)
+                  <input value={formData.deviceModel} onChange={(event) => setFormData({ ...formData, deviceModel: event.target.value })} placeholder="مثال: Samsung Galaxy S24" className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
                 </label>
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">
                   نظام التشغيل
@@ -369,25 +375,14 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
                   </select>
                 </label>
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">
-                  إصدار النظام
-                  <input required value={formData.osVersion} onChange={(event) => setFormData({ ...formData, osVersion: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
+                  إصدار النظام (اختياري)
+                  <input value={formData.osVersion} onChange={(event) => setFormData({ ...formData, osVersion: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
                 </label>
-              </div>
-
-              <div className="space-y-3 border-t border-slate-100 pt-4">
-                <label className="flex items-start gap-2.5 text-xs leading-relaxed text-slate-600">
-                  <input required type="checkbox" checked={formData.agreedToTesting} onChange={(event) => setFormData({ ...formData, agreedToTesting: event.target.checked })} className="mt-0.5 accent-blue-600" />
-                  أوافق على تنفيذ مهام الاختبار خلال مدة {campaign.durationDays} يومًا.
-                </label>
-                <label className="flex items-start gap-2.5 text-xs leading-relaxed text-slate-600">
-                  <input required type="checkbox" checked={formData.agreedToTerms} onChange={(event) => setFormData({ ...formData, agreedToTerms: event.target.checked })} className="mt-0.5 accent-blue-600" />
-                  أوافق على سياسة الخصوصية وشروط المشاركة في الاختبار.
-                </label>
-              </div>
+              </div>}
 
               <button type="submit" disabled={isSubmitting} className="h-11 w-full sm:w-auto px-6 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-sm font-bold flex items-center justify-center gap-2">
                 <Send className="w-4 h-4" />
-                {isSubmitting ? 'جارٍ حفظ الطلب...' : 'إرسال طلب الانضمام'}
+                {isSubmitting ? 'جارٍ تسجيل طلبك...' : 'تسجيل اهتمامي'}
               </button>
             </form>
           )}
