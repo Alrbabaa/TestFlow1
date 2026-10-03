@@ -92,6 +92,7 @@ export interface AppCampaign {
   name: string;
   tagline: string;
   description: string;
+  campaignGoal?: string;
   iconUrl: string;
   screenshots: string[];
   developerId: string;
@@ -108,6 +109,8 @@ export interface AppCampaign {
   minOsVersion: string;
   testingInstructions: string;
   reward?: CampaignReward;
+  rewardTitle?: string;
+  rewardValue?: string;
   category: 'productivity' | 'finance' | 'health' | 'social' | 'games' | 'education' | 'tools';
   startDate: string;
   endDate: string;

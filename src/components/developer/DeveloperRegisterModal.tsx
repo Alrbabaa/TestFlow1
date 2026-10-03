@@ -6,13 +6,13 @@ import { useApp } from '../../context/AppContext';
 export const DeveloperRegisterModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const { user, userRole } = useAuth();
   const { registerDeveloper } = useApp();
-  const [name, setName] = useState(''); const [companyName, setCompanyName] = useState(''); const [submitted, setSubmitted] = useState(false);
+  const [name, setName] = useState(''); const [companyName, setCompanyName] = useState(''); const [bio, setBio] = useState(''); const [submitted, setSubmitted] = useState(false);
   useEffect(() => { if (user?.displayName) setName(user.displayName); if (userRole === 'developer_pending') setSubmitted(true); }, [user, userRole]);
   if (!isOpen) return null;
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!user || !name.trim() || !companyName.trim()) return;
-    registerDeveloper({ name: name.trim(), companyName: companyName.trim(), email: user.email || '' });
+    registerDeveloper({ name: name.trim(), companyName: companyName.trim(), email: user.email || '', bio: bio.trim() || undefined });
     setSubmitted(true);
   };
   return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
@@ -22,6 +22,7 @@ export const DeveloperRegisterModal: React.FC<{ isOpen: boolean; onClose: () => 
         <form onSubmit={submit} className="space-y-4"><div className="flex gap-2 items-center"><Building2 className="text-blue-600" /><h3 className="font-bold text-lg">طلب انضمام مطوّر</h3></div>
           <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="الاسم" className="w-full border rounded-lg p-3" />
           <input required value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="اسم الشركة أو الفريق" className="w-full border rounded-lg p-3" />
+          <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="نبذة قصيرة اختيارية" className="w-full border rounded-lg p-3 min-h-20" />
           <input readOnly value={user?.email || ''} className="w-full border rounded-lg p-3 bg-slate-50" />
           <button className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold">إرسال الطلب</button>
         </form>}

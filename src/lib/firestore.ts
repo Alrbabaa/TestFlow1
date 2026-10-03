@@ -33,6 +33,7 @@ export function publicCampaignFromDoc(id: string, data: Record<string, any>): Ap
     name: data.name,
     tagline: data.tagline || '',
     description: data.description || '',
+    campaignGoal: data.campaignGoal || '',
     iconUrl: data.iconUrl || '',
     screenshots: data.screenshots || [],
     // This is intentionally only an owner id; private data is merged only for
@@ -50,7 +51,8 @@ export function publicCampaignFromDoc(id: string, data: Record<string, any>): Ap
     targetDevices: data.targetDevices || [],
     minOsVersion: data.minOsVersion || '',
     testingInstructions: data.testingInstructions || '',
-    reward: data.reward,
+    rewardTitle: data.rewardTitle || '', rewardValue: data.rewardValue || '',
+    reward: data.rewardTitle ? { type: 'cash', title: data.rewardTitle, value: data.rewardValue || '', description: '' } : undefined,
     category: data.category || 'tools',
     startDate: data.startDate || dateString(data.createdAt),
     endDate: data.endDate || '',
@@ -82,6 +84,11 @@ export const subscribePublicCampaigns = (callback: (items: AppCampaign[]) => voi
   (snapshot) => callback(snapshot.docs.map((item) => publicCampaignFromDoc(item.id, item.data()))),
 );
 
+export const subscribeWorkspaceCampaigns = (uid: string, admin: boolean, callback: (items: AppCampaign[]) => void) => onSnapshot(
+  admin ? collection(db, 'publicCampaigns') : query(collection(db, 'publicCampaigns'), where('developerId', '==', uid)),
+  (snapshot) => callback(snapshot.docs.map((item) => publicCampaignFromDoc(item.id, item.data()))),
+);
+
 export const subscribePrivateCampaigns = (uid: string, admin: boolean, callback: (items: Map<string, any>) => void) => onSnapshot(
   admin ? collection(db, 'campaignPrivate') : query(collection(db, 'campaignPrivate'), where('developerId', '==', uid)),
   (snapshot) => callback(new Map(snapshot.docs.map((item) => [item.id, item.data()]))),
@@ -92,7 +99,7 @@ export const subscribeApplications = (uid: string, admin: boolean, callback: (it
   (snapshot) => callback(snapshot.docs.map((item) => applicationFromDoc(item.id, item.data()))),
 );
 
-export const submitDeveloperRequest = (uid: string, input: { name: string; companyName: string; email: string }) => setDoc(doc(db, 'developerRequests', uid), {
+export const submitDeveloperRequest = (uid: string, input: { name: string; companyName: string; email: string; bio?: string }) => setDoc(doc(db, 'developerRequests', uid), {
   uid, ...input, status: 'pending', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
 }, { merge: true });
 
@@ -109,12 +116,20 @@ export const submitApplication = async (campaign: AppCampaign, input: Omit<Teste
 };
 
 export const createCampaign = async (campaign: AppCampaign) => {
-  const { testUrl, ...rest } = campaign;
-  const publicData = { ...rest, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
-  await setDoc(doc(db, 'publicCampaigns', campaign.id), publicData);
-  await setDoc(doc(db, 'campaignPrivate', campaign.id), {
+  const publicData = {
+    name: campaign.name, slug: campaign.slug, developerId: campaign.developerId, developerName: campaign.developerName,
+    platform: campaign.platform, testType: campaign.testType, category: campaign.category, tagline: campaign.tagline,
+    description: campaign.description, campaignGoal: campaign.campaignGoal || '', iconUrl: campaign.iconUrl,
+    durationDays: campaign.durationDays, requiredTestersCount: campaign.requiredTestersCount, currentTestersCount: 0,
+    status: campaign.status, rewardTitle: campaign.rewardTitle || campaign.reward?.title || '', rewardValue: campaign.rewardValue || campaign.reward?.value || '',
+    testingInstructions: campaign.testingInstructions, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  };
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'publicCampaigns', campaign.id), publicData);
+  batch.set(doc(db, 'campaignPrivate', campaign.id), {
     developerId: campaign.developerId, testUrl: campaign.testUrl, internalNotes: '', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
   });
+  await batch.commit();
 };
 
 export const updateCampaignDocuments = async (id: string, updates: Partial<AppCampaign>) => {

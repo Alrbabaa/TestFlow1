@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { createCampaign as createFirestoreCampaign, decideDeveloperRequest, setUserRole, submitApplication as submitFirestoreApplication, submitDeveloperRequest, subscribeApplications, subscribeDeveloperRequests, subscribePrivateCampaigns, subscribePublicCampaigns, updateApplication as updateFirestoreApplication, updateCampaignDocuments, deleteCampaignDocuments } from '../lib/firestore';
+import { createCampaign as createFirestoreCampaign, decideDeveloperRequest, setUserRole, submitApplication as submitFirestoreApplication, submitDeveloperRequest, subscribeApplications, subscribeDeveloperRequests, subscribePrivateCampaigns, subscribePublicCampaigns, subscribeWorkspaceCampaigns, updateApplication as updateFirestoreApplication, updateCampaignDocuments, deleteCampaignDocuments } from '../lib/firestore';
 import { useAuth } from './AuthContext';
 import type { AppCampaign, BugReport, DeveloperUser, EmailNotification, ReputationLevel, SecurityAuditEntry, TesterApplication, TesterFeedback, TesterStatus, TesterUser, UserRole } from '../types';
 
@@ -47,7 +47,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const showToast = (message: string, type: NonNullable<Toast>['type'] = 'success') => { const id = Date.now(); setToast({ message, type, id }); window.setTimeout(() => setToast((item) => item?.id === id ? null : item), 4000); };
   const logSecurityEvent = (event: Omit<SecurityAuditEntry, 'id' | 'timestamp'>) => setSecurityLogs((items) => [{ ...event, id: crypto.randomUUID(), timestamp: new Date().toISOString() }, ...items]);
 
-  useEffect(() => subscribePublicCampaigns(setCampaigns), []);
+  useEffect(() => {
+    const privileged = user && !roleLoading && (userRole === 'admin' || userRole === 'developer');
+    return privileged ? subscribeWorkspaceCampaigns(user.uid, userRole === 'admin', setCampaigns) : subscribePublicCampaigns(setCampaigns);
+  }, [user, userRole, roleLoading]);
   useEffect(() => {
     if (!user || roleLoading || (userRole !== 'admin' && userRole !== 'developer')) { setApplications([]); return; }
     const admin = userRole === 'admin'; let privateData = new Map<string, any>();
@@ -58,7 +61,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [user, userRole, roleLoading]);
   useEffect(() => {
     if (userRole !== 'admin') { setDevelopers([]); return; }
-    return subscribeDeveloperRequests((requests) => setDevelopers(requests.map((request) => ({ id: request.uid, name: request.name || '', companyName: request.companyName || '', email: request.email || '', status: request.status === 'approved' ? 'approved' : request.status === 'rejected' ? 'rejected' : 'pending_approval', submittedAt: today(), appsCount: 0 }))));
+    return subscribeDeveloperRequests((requests) => setDevelopers(requests.map((request) => ({ id: request.uid, name: request.name || '', companyName: request.companyName || '', email: request.email || '', bio: request.bio || '', status: request.status === 'approved' ? 'approved' : request.status === 'rejected' ? 'rejected' : 'pending_approval', submittedAt: today(), appsCount: 0 }))));
   }, [userRole]);
   useEffect(() => {
     if (!user) { setCurrentTester(emptyTester); setCurrentDeveloper(emptyDeveloper); return; }
