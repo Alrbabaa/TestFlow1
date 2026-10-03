@@ -1,8 +1,8 @@
 import {
   Timestamp,
   collection,
-  deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   orderBy,
   query,
@@ -121,8 +121,12 @@ export const submitApplication = async (campaign: AppCampaign, input: Omit<Teste
 };
 
 export const createCampaign = async (campaign: AppCampaign) => {
+  const slug = campaign.slug.trim().toLowerCase();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error('Campaign slug is invalid.');
+  const slugRef = doc(db, 'campaignSlugs', slug);
+  if ((await getDoc(slugRef)).exists()) throw new Error('Campaign slug is already in use.');
   const publicData = {
-    name: campaign.name, slug: campaign.slug, developerId: campaign.developerId, developerName: campaign.developerName,
+    name: campaign.name, slug, developerId: campaign.developerId, developerName: campaign.developerName,
     platform: campaign.platform, testType: campaign.testType, category: campaign.category, tagline: campaign.tagline,
     description: campaign.description, campaignGoal: campaign.campaignGoal || '', iconUrl: campaign.iconUrl,
     durationDays: campaign.durationDays, requiredTestersCount: campaign.requiredTestersCount, currentTestersCount: 0,
@@ -134,6 +138,7 @@ export const createCampaign = async (campaign: AppCampaign) => {
   batch.set(doc(db, 'campaignPrivate', campaign.id), {
     developerId: campaign.developerId, testUrl: campaign.testUrl, internalNotes: '', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
   });
+  batch.set(slugRef, { campaignId: campaign.id, developerId: campaign.developerId, createdAt: serverTimestamp() });
   await batch.commit();
 };
 
@@ -141,14 +146,18 @@ export const updateCampaignDocuments = async (id: string, updates: Partial<AppCa
   const { testUrl } = updates;
   // Keep updates aligned with the public document and its Security Rules.
   // In particular, never leak testUrl or reassign developerId.
-  const allowedPublicKeys: (keyof AppCampaign)[] = ['name', 'slug', 'developerName', 'platform', 'testType', 'category', 'tagline', 'description', 'campaignGoal', 'iconUrl', 'durationDays', 'requiredTestersCount', 'status', 'rewardTitle', 'rewardValue', 'testingInstructions'];
+  const allowedPublicKeys: (keyof AppCampaign)[] = ['name', 'developerName', 'platform', 'testType', 'category', 'tagline', 'description', 'campaignGoal', 'iconUrl', 'durationDays', 'requiredTestersCount', 'status', 'rewardTitle', 'rewardValue', 'testingInstructions'];
   const publicUpdates = Object.fromEntries(allowedPublicKeys.flatMap((key) => updates[key] === undefined ? [] : [[key, updates[key]]]));
   if (Object.keys(publicUpdates).length) await updateDoc(doc(db, 'publicCampaigns', id), { ...publicUpdates, updatedAt: serverTimestamp() });
   if (typeof testUrl === 'string') await updateDoc(doc(db, 'campaignPrivate', id), { testUrl, updatedAt: serverTimestamp() });
 };
 
-export const deleteCampaignDocuments = async (id: string) => {
-  await Promise.all([deleteDoc(doc(db, 'publicCampaigns', id)), deleteDoc(doc(db, 'campaignPrivate', id))]);
+export const deleteCampaignDocuments = async (id: string, slug?: string) => {
+  const batch = writeBatch(db);
+  batch.delete(doc(db, 'publicCampaigns', id));
+  batch.delete(doc(db, 'campaignPrivate', id));
+  if (slug) batch.delete(doc(db, 'campaignSlugs', slug));
+  await batch.commit();
 };
 
 export const updateApplication = (id: string, values: Partial<TesterApplication>) => updateDoc(doc(db, 'applications', id), { ...values, updatedAt: serverTimestamp() });

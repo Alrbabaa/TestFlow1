@@ -72,14 +72,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const applyToCampaign: AppContextType['applyToCampaign'] = async (campaignId, form) => {
     const campaign = campaigns.find((item) => item.id === campaignId); const email = form.email.trim().toLowerCase();
-    if (!campaign || !email.includes('@')) return { success: false, message: 'Please enter a valid email.' };
+    if (!campaign || !email.includes('@') || !form.name.trim()) return { success: false, message: 'Please enter your name and a valid email.' };
     const emailKey = btoa(email).replace(/=+$/g, '').replace(/[+/]/g, '_');
     try { const id = await submitFirestoreApplication(campaign, { testerId: 'anonymous', testerName: form.name.trim(), testerEmail: email, googlePlayEmail: form.googlePlayEmail.trim().toLowerCase(), testerCountry: form.country.trim(), deviceModel: form.deviceModel.trim(), osType: form.osType, osVersion: form.osVersion.trim() }, emailKey); return { success: true, message: 'Application submitted.', applicationId: id }; }
     catch (error: any) { return { success: false, message: error?.code === 'permission-denied' ? 'This application was already submitted or the campaign is unavailable.' : 'Could not submit your application.' }; }
   };
   const addCampaign: AppContextType['addCampaign'] = async (data) => { if (!user || (userRole !== 'admin' && userRole !== 'developer')) throw new Error('Developer access is required.'); const id = crypto.randomUUID(); const campaign: AppCampaign = { ...data, id, developerId: user.uid, currentTestersCount: 0, createdAt: today() }; await createFirestoreCampaign(campaign); return id; };
   const updateCampaign: AppContextType['updateCampaign'] = async (id, updates) => { try { await updateCampaignDocuments(id, updates); return true; } catch { showToast('Could not save campaign changes.', 'error'); return false; } };
-  const removeCampaign: AppContextType['removeCampaign'] = async (id) => { try { await deleteCampaignDocuments(id); return true; } catch { showToast('Could not delete campaign.', 'error'); return false; } };
+  const removeCampaign: AppContextType['removeCampaign'] = async (id) => { try { await deleteCampaignDocuments(id, campaigns.find((campaign) => campaign.id === id)?.slug); return true; } catch { showToast('Could not delete campaign.', 'error'); return false; } };
   const updateApplicationStatus = (id: string, status: TesterStatus, notes?: string) => { void updateFirestoreApplication(id, { status, ...(notes ? { developerNotes: notes } : {}) }).catch(() => showToast('Could not update application.', 'error')); };
   const registerDeveloper = async (input: Parameters<AppContextType['registerDeveloper']>[0]) => {
     if (!user) throw new Error('Google sign-in is required.');

@@ -40,6 +40,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
     osType: (campaign.platform === 'ios' ? 'ios' : 'android') as 'android' | 'ios',
     osVersion: campaign.platform === 'ios' ? 'iOS 18' : 'Android 14',
     deviceModel: '',
+    website: '',
   });
 
   const existingApp = applications.find(
@@ -60,6 +61,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
 
   const handleSubmitApplication = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (formData.website) { setIsSubmitted(true); return; }
     setErrorMessage('');
     setIsSubmitting(true);
     try {
@@ -334,6 +336,10 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
               </div>
 
               {errorMessage && <div role="alert" className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">{errorMessage}</div>}
+              <label className="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
+                Website
+                <input tabIndex={-1} autoComplete="off" value={formData.website} onChange={(event) => setFormData({ ...formData, website: event.target.value })} />
+              </label>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">

@@ -25,8 +25,13 @@ service cloud.firestore {
     match /publicCampaigns/{id} {
       allow get, list: if resource.data.status == 'active' || manages(id);
       allow create: if (isAdmin() || isDeveloper()) && request.resource.data.keys().hasOnly(campaignFields()) && request.resource.data.developerId == request.auth.uid && text(request.resource.data.name,120) && text(request.resource.data.slug,80) && request.resource.data.platform in ['android','ios'] && request.resource.data.testType in ['google_play_closed','testflight'] && request.resource.data.status in ['draft','active','paused','completed'];
-      allow update: if manages(id) && request.resource.data.keys().hasOnly(campaignFields()) && request.resource.data.developerId == resource.data.developerId && request.resource.data.status in ['draft','active','paused','completed'];
+      allow update: if manages(id) && request.resource.data.keys().hasOnly(campaignFields()) && request.resource.data.developerId == resource.data.developerId && request.resource.data.slug == resource.data.slug && request.resource.data.status in ['draft','active','paused','completed'];
       allow delete: if manages(id);
+    }
+    match /campaignSlugs/{slug} {
+      allow get: if signedIn();
+      allow create: if (isAdmin() || isDeveloper()) && !exists(/databases/$(database)/documents/campaignSlugs/$(slug)) && request.resource.data.developerId == request.auth.uid && getAfter(/databases/$(database)/documents/publicCampaigns/$(request.resource.data.campaignId)).data.developerId == request.auth.uid && getAfter(/databases/$(database)/documents/publicCampaigns/$(request.resource.data.campaignId)).data.slug == slug;
+      allow delete: if isAdmin() || (isDeveloper() && resource.data.developerId == request.auth.uid);
     }
     match /campaignPrivate/{id} {
       allow get, list: if manages(id);
