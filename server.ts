@@ -60,7 +60,8 @@ const resolveFirebaseEmail = async (uid: string, tokenEmail?: string) => {
   if (emailFromToken) return emailFromToken;
 
   const firebaseUser = await adminAuth.getUser(uid);
-  return firebaseUser.email?.trim().toLowerCase() || null;
+  const providerEmail = firebaseUser.providerData.find((provider) => provider.email)?.email;
+  return firebaseUser.email?.trim().toLowerCase() || providerEmail?.trim().toLowerCase() || null;
 };
 
 // Seed initial data once lazily
