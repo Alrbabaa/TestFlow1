@@ -34,6 +34,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    googlePlayEmail: '',
     country: '',
     osType: (campaign.platform === 'ios' ? 'ios' : 'android') as 'android' | 'ios',
     osVersion: campaign.platform === 'ios' ? 'iOS 18' : 'Android 14',
@@ -66,7 +67,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
       const result = await applyToCampaign(campaign.id, {
         name: formData.name,
         email: formData.email,
-        googlePlayEmail: formData.email,
+        googlePlayEmail: formData.googlePlayEmail,
         country: formData.country,
         osType: formData.osType,
         osVersion: formData.osVersion,
@@ -341,8 +342,12 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
                   <input required autoComplete="name" value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
                 </label>
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">
+                  بريد التواصل (Gmail)
+                  <input required type="email" autoComplete="email" placeholder="name@gmail.com" value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
+                </label>
+                <label className="space-y-1.5 text-xs font-bold text-slate-700">
                   {formData.osType === 'android' ? 'بريد Google Play' : 'بريد Apple ID'}
-                  <input required type="email" autoComplete="email" placeholder={formData.osType === 'android' ? 'name@gmail.com' : 'name@icloud.com'} value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
+                  <input required type="email" placeholder={formData.osType === 'android' ? 'play-account@gmail.com' : 'apple-id@icloud.com'} value={formData.googlePlayEmail} onChange={(event) => setFormData({ ...formData, googlePlayEmail: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
                 </label>
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">
                   الدولة

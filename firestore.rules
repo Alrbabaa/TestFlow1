@@ -1,0 +1,423 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && request.auth.uid in [
+          'UEqGXe9B52Wp0T5sXfxcC72a5mq2',
+          'hJMZ8MAYrcRjHEOzxidDQwTjMI52'
+        ];
+    }
+
+    function userExists() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isDeveloper() {
+      return userExists()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'developer';
+    }
+
+    function validShortText(value, maximum) {
+      return value is string
+        && value.size() > 0
+        && value.size() <= maximum;
+    }
+
+    function validOptionalText(value, maximum) {
+      return value == null
+        || (value is string && value.size() <= maximum);
+    }
+
+    function managesCampaign(campaignId) {
+      return isAdmin()
+        || (
+          isDeveloper()
+          && exists(/databases/$(database)/documents/campaignPrivate/$(campaignId))
+          && get(/databases/$(database)/documents/campaignPrivate/$(campaignId)).data.developerId
+             == request.auth.uid
+        );
+    }
+
+    // =====================================================
+    // USERS
+    // =====================================================
+
+    match /users/{uid} {
+
+      allow get: if signedIn()
+        && (request.auth.uid == uid || isAdmin());
+
+      allow list: if isAdmin();
+
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'email',
+          'name',
+          'companyName',
+          'role',
+          'createdAt'
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.role == 'developer_pending'
+        && validShortText(request.resource.data.email, 254)
+        && validOptionalText(request.resource.data.name, 120)
+        && validOptionalText(request.resource.data.companyName, 160);
+
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && request.auth.uid == uid
+
+          // User cannot change identity or role.
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.role == resource.data.role
+
+          && request.resource.data.keys().hasOnly([
+            'uid',
+            'email',
+            'name',
+            'companyName',
+            'role',
+            'createdAt'
+          ])
+
+          && validShortText(request.resource.data.email, 254)
+          && validOptionalText(request.resource.data.name, 120)
+          && validOptionalText(request.resource.data.companyName, 160)
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // =====================================================
+    // DEVELOPER REQUESTS
+    // =====================================================
+
+    match /developerRequests/{uid} {
+
+      allow create: if signedIn()
+        && request.auth.uid == uid
+
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'name',
+          'companyName',
+          'email',
+          'status',
+          'createdAt'
+        ])
+
+        && request.resource.data.uid == uid
+        && request.resource.data.status == 'pending'
+
+        && validShortText(request.resource.data.name, 100)
+        && validShortText(request.resource.data.companyName, 120)
+        && validShortText(request.resource.data.email, 254);
+
+      allow get: if signedIn()
+        && (request.auth.uid == uid || isAdmin());
+
+      allow list: if isAdmin();
+
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && request.auth.uid == uid
+
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.status == resource.data.status
+
+          && request.resource.data.keys().hasOnly([
+            'uid',
+            'name',
+            'companyName',
+            'email',
+            'status',
+            'createdAt'
+          ])
+
+          && validShortText(request.resource.data.name, 100)
+          && validShortText(request.resource.data.companyName, 120)
+          && validShortText(request.resource.data.email, 254)
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // =====================================================
+    // PUBLIC CAMPAIGNS
+    // Safe for anonymous reads.
+    // MUST NOT contain testUrl or internal/private data.
+    // =====================================================
+
+    match /publicCampaigns/{campaignId} {
+
+      allow get, list: if resource.data.status == 'active'
+        || managesCampaign(campaignId);
+
+      allow create: if (isAdmin() || isDeveloper())
+
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'slug',
+          'developerId',
+          'developerName',
+          'platform',
+          'category',
+          'tagline',
+          'description',
+          'iconUrl',
+          'durationDays',
+          'requiredTestersCount',
+          'currentTestersCount',
+          'status',
+          'rewardTitle',
+          'rewardValue',
+          'testingInstructions',
+          'createdAt',
+          'updatedAt'
+        ])
+
+        && request.resource.data.developerId == request.auth.uid
+
+        && validShortText(request.resource.data.name, 120)
+        && validShortText(request.resource.data.slug, 80)
+
+        && request.resource.data.platform in ['android', 'ios']
+
+        && request.resource.data.status in [
+          'draft',
+          'active',
+          'paused',
+          'completed'
+        ];
+
+      allow update: if managesCampaign(campaignId)
+
+        && request.resource.data.developerId == resource.data.developerId
+
+        && request.resource.data.status in [
+          'draft',
+          'active',
+          'paused',
+          'completed'
+        ]
+
+        // Prevent adding unexpected private fields such as testUrl.
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'slug',
+          'developerId',
+          'developerName',
+          'platform',
+          'category',
+          'tagline',
+          'description',
+          'iconUrl',
+          'durationDays',
+          'requiredTestersCount',
+          'currentTestersCount',
+          'status',
+          'rewardTitle',
+          'rewardValue',
+          'testingInstructions',
+          'createdAt',
+          'updatedAt'
+        ]);
+
+      allow delete: if managesCampaign(campaignId);
+    }
+
+    // =====================================================
+    // PRIVATE CAMPAIGN DATA
+    // Contains testUrl and internal data.
+    // =====================================================
+
+    match /campaignPrivate/{campaignId} {
+
+      allow get, list: if managesCampaign(campaignId);
+
+      allow create: if (isAdmin() || isDeveloper())
+
+        && request.resource.data.keys().hasOnly([
+          'developerId',
+          'testUrl',
+          'internalNotes',
+          'createdAt',
+          'updatedAt'
+        ])
+
+        && request.resource.data.developerId == request.auth.uid
+
+        && validShortText(request.resource.data.testUrl, 2048)
+
+        // Important if publicCampaign + privateCampaign are
+        // created together in one atomic batch.
+        && getAfter(
+          /databases/$(database)/documents/publicCampaigns/$(campaignId)
+        ).data.developerId == request.auth.uid;
+
+      allow update: if managesCampaign(campaignId)
+
+        && request.resource.data.developerId == resource.data.developerId
+
+        && request.resource.data.keys().hasOnly([
+          'developerId',
+          'testUrl',
+          'internalNotes',
+          'createdAt',
+          'updatedAt'
+        ])
+
+        && validShortText(request.resource.data.testUrl, 2048);
+
+      allow delete: if managesCampaign(campaignId);
+    }
+
+    // =====================================================
+    // TESTER APPLICATIONS
+    // Anonymous create only.
+    // Never publicly readable.
+    // =====================================================
+
+    match /applications/{applicationId} {
+
+      allow create: if
+
+        !exists(
+          /databases/$(database)/documents/applications/$(applicationId)
+        )
+
+        && request.resource.data.keys().hasOnly([
+          'campaignId',
+          'developerId',
+          'testerName',
+          'testerEmail',
+          'googlePlayEmail',
+          'emailKey',
+          'deviceModel',
+          'osType',
+          'osVersion',
+          'country',
+          'status',
+          'notes',
+          'createdAt',
+          'updatedAt'
+        ])
+
+        && validShortText(request.resource.data.campaignId, 160)
+
+        && validShortText(request.resource.data.emailKey, 254)
+
+        && applicationId ==
+          request.resource.data.campaignId
+          + '_'
+          + request.resource.data.emailKey
+
+        && exists(
+          /databases/$(database)/documents/publicCampaigns/$(request.resource.data.campaignId)
+        )
+
+        && get(
+          /databases/$(database)/documents/publicCampaigns/$(request.resource.data.campaignId)
+        ).data.status == 'active'
+
+        && exists(
+          /databases/$(database)/documents/campaignPrivate/$(request.resource.data.campaignId)
+        )
+
+        && request.resource.data.developerId ==
+          get(
+            /databases/$(database)/documents/campaignPrivate/$(request.resource.data.campaignId)
+          ).data.developerId
+
+        && validShortText(request.resource.data.testerName, 120)
+
+        && validShortText(request.resource.data.testerEmail, 254)
+
+        && validShortText(request.resource.data.googlePlayEmail, 254)
+
+        && validShortText(request.resource.data.deviceModel, 160)
+
+        && validOptionalText(request.resource.data.osVersion, 120)
+
+        && validOptionalText(request.resource.data.country, 120)
+
+        && validOptionalText(request.resource.data.notes, 2000)
+
+        && request.resource.data.osType in ['android', 'ios']
+
+        && request.resource.data.status == 'pending';
+
+      allow get, list: if signedIn()
+        && managesCampaign(resource.data.campaignId);
+
+      allow update: if signedIn()
+
+        && managesCampaign(resource.data.campaignId)
+
+        // Immutable ownership / identity fields.
+        && request.resource.data.campaignId == resource.data.campaignId
+        && request.resource.data.developerId == resource.data.developerId
+        && request.resource.data.testerEmail == resource.data.testerEmail
+        && request.resource.data.googlePlayEmail == resource.data.googlePlayEmail
+        && request.resource.data.emailKey == resource.data.emailKey
+        && request.resource.data.testerName == resource.data.testerName
+
+        && request.resource.data.status in [
+          'pending',
+          'accepted',
+          'waiting_for_whitelisting',
+          'ready_to_join',
+          'joined',
+          'active',
+          'completed',
+          'inactive',
+          'rejected'
+        ]
+
+        && validOptionalText(request.resource.data.notes, 2000);
+
+      allow delete: if signedIn()
+        && managesCampaign(resource.data.campaignId);
+    }
+
+    // =====================================================
+    // BUG REPORTS
+    // =====================================================
+
+    match /bugReports/{id} {
+
+      allow create: if signedIn()
+        && request.resource.data.campaignId is string
+        && managesCampaign(request.resource.data.campaignId);
+
+      allow get, list, update, delete: if signedIn()
+        && managesCampaign(resource.data.campaignId);
+    }
+
+    // =====================================================
+    // FEEDBACK
+    // =====================================================
+
+    match /feedback/{id} {
+
+      allow create: if signedIn()
+        && request.resource.data.campaignId is string
+        && managesCampaign(request.resource.data.campaignId);
+
+      allow get, list, update, delete: if signedIn()
+        && managesCampaign(resource.data.campaignId);
+    }
+  }
+}

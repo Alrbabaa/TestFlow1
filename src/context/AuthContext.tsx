@@ -6,6 +6,9 @@ import {
   signOut as firebaseSignOut,
 } from 'firebase/auth';
 import { auth, googleAuthProvider } from '../lib/firebase.ts';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase.ts';
+import { isAdminUid, type StoredRole } from '../lib/firestore.ts';
 
 interface AuthContextType {
   user: User | null;
@@ -40,25 +43,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const token = await currentUser.getIdToken();
       setIdToken(token);
-      const syncResponse = await fetch('/api/users/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: currentUser.displayName, email: currentUser.email }),
-      });
-      if (!syncResponse.ok) throw new Error('Account profile sync failed');
-
-      const roleResponse = await fetch('/api/users/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!roleResponse.ok) throw new Error('Account role lookup failed');
-      const profile = await roleResponse.json();
-      const role = ['tester', 'developer_pending', 'developer', 'admin'].includes(profile.role)
-        ? profile.role as AuthContextType['userRole']
-        : null;
+      // Admin is enforced independently in Firestore Rules. This early check is
+      // only for routing and works before an admin profile document exists.
+      if (isAdminUid(currentUser.uid)) {
+        setUserRole('admin');
+        return 'admin';
+      }
+      const profileRef = doc(db, 'users', currentUser.uid);
+      const profile = await getDoc(profileRef);
+      const storedRole = profile.exists() ? profile.data().role as StoredRole : null;
+      const role = storedRole === 'developer' || storedRole === 'developer_pending' ? storedRole : null;
       setUserRole(role);
       return role;
     } catch (error) {
-      console.warn('Could not verify account role:', error);
+      console.warn('Could not load Firestore account role:', error);
       setUserRole(null);
       return null;
     } finally {
