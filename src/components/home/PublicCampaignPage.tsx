@@ -314,7 +314,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
               </div>
               <h2 className="text-xl font-black text-slate-900">تم استلام طلبك بنجاح</h2>
               <p className="text-sm text-slate-600 leading-relaxed">
-                سنراجع بياناتك لهذه الحملة. ستصلك الخطوة التالية عند الموافقة على طلبك؛ لن يظهر رابط الاختبار قبل اعتماد جاهزية الانضمام.
+                تم تسجيل طلبك. سيرسل صاحب الحملة رابط الاختبار إلى بريدك عند قبولك؛ وقد لا يعمل الرابط حتى تتم إضافة بريدك إلى قائمة الاختبار أو تأكيد جهوزية الانضمام.
               </p>
               <button onClick={onBackToAll} className="h-10 px-5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">
                 استكشاف حملات أخرى
