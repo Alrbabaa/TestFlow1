@@ -25,7 +25,7 @@ interface AppContextType {
   addCampaign: (campaign: Omit<AppCampaign, 'id' | 'createdAt' | 'currentTestersCount'>) => Promise<string>;
   updateCampaign: (campaignId: string, updates: Partial<AppCampaign>) => Promise<boolean>; removeCampaign: (campaignId: string) => Promise<boolean>;
   updateApplicationStatus: (applicationId: string, newStatus: TesterStatus, notes?: string) => void; confirmWhitelisted: (applicationId: string) => void; confirmBulkWhitelisted: (applicationIds: string[]) => void;
-  updateBugStatus: (bugId: string, status: BugReport['status']) => void; registerDeveloper: (dev: { name: string; companyName: string; email: string; phone?: string; bio?: string; website?: string }) => void;
+  updateBugStatus: (bugId: string, status: BugReport['status']) => void; registerDeveloper: (dev: { name: string; companyName: string; email: string; phone?: string; bio?: string; website?: string }) => Promise<void>;
   updateDeveloperStatus: (devId: string, status: DeveloperUser['status']) => void; updateTesterStatus: (testerId: string, status: TesterUser['status']) => void;
   updateTesterReputation: (testerId: string, level: ReputationLevel, score: number) => void; toggleCampaignFeatured: (campaignId: string) => void;
   markEmailAsRead: (emailId: string) => void; unreadEmailsCount: number; resetToDemoData: () => void;
@@ -81,7 +81,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateCampaign: AppContextType['updateCampaign'] = async (id, updates) => { try { await updateCampaignDocuments(id, updates); return true; } catch { showToast('Could not save campaign changes.', 'error'); return false; } };
   const removeCampaign: AppContextType['removeCampaign'] = async (id) => { try { await deleteCampaignDocuments(id); return true; } catch { showToast('Could not delete campaign.', 'error'); return false; } };
   const updateApplicationStatus = (id: string, status: TesterStatus, notes?: string) => { void updateFirestoreApplication(id, { status, ...(notes ? { developerNotes: notes } : {}) }).catch(() => showToast('Could not update application.', 'error')); };
-  const registerDeveloper = (input: Parameters<AppContextType['registerDeveloper']>[0]) => { if (!user) return; void submitDeveloperRequest(user.uid, input).then(() => setUserRole(user.uid, 'developer_pending')).then(() => showToast('Developer request submitted.')).catch(() => showToast('Could not submit developer request.', 'error')); };
+  const registerDeveloper = async (input: Parameters<AppContextType['registerDeveloper']>[0]) => {
+    if (!user) throw new Error('Google sign-in is required.');
+    await submitDeveloperRequest(user.uid, input);
+    await setUserRole(user.uid, 'developer_pending');
+    showToast('Developer request submitted.');
+  };
   const updateDeveloperStatus = (id: string, status: DeveloperUser['status']) => { void decideDeveloperRequest(id, status === 'approved' ? 'approve' : 'reject').catch(() => showToast('Could not update developer request.', 'error')); };
   const toggleTaskCompletion = (id: string, taskId: string) => { const app = applications.find((item) => item.id === id); if (app) void updateFirestoreApplication(id, { completedTaskIds: app.completedTaskIds.includes(taskId) ? app.completedTaskIds.filter((item) => item !== taskId) : [...app.completedTaskIds, taskId] }); };
   const confirmTesterJoined = (id: string) => updateApplicationStatus(id, 'active'); const confirmWhitelisted = (id: string) => updateApplicationStatus(id, 'ready_to_join'); const noop = () => undefined;

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
 
 // Firebase's web configuration identifies the project; it is not a server
@@ -33,7 +33,12 @@ export const firebaseConfigError = missingConfigKeys.length
 // useful setup screen before any provider attempts to use these exports.
 const app = firebaseConfigError ? null : initializeApp(firebaseConfig);
 export const auth = (app ? getAuth(app) : undefined) as unknown as Auth;
-export const db = (app ? getFirestore(app) : undefined) as unknown as Firestore;
+// Avoid WebChannel/QUIC stream failures seen behind some mobile networks,
+// proxies and antivirus products. This must run before any Firestore call.
+export const db = (app ? initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  experimentalLongPollingOptions: { timeoutSeconds: 25 },
+}) : undefined) as unknown as Firestore;
 export const googleAuthProvider = new GoogleAuthProvider();
 googleAuthProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
 googleAuthProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
