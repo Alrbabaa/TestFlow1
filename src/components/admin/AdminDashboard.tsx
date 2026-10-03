@@ -15,6 +15,7 @@ export const AdminDashboard: React.FC = () => {
   const app = useApp();
   const [form, setForm] = useState<Form>(blank);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [shareCampaign, setShareCampaign] = useState<{ id: string; name: string; slug: string; status: AppCampaign['status'] } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [campaignId, setCampaignId] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -24,6 +25,7 @@ export const AdminDashboard: React.FC = () => {
   const field = <K extends keyof Form>(key: K, value: Form[K]) => setForm((current) => ({ ...current, [key]: value }));
   const reset = () => { setForm(blank()); setEditingId(null); };
   const selectedApps = shown.filter((item) => selected.includes(item.id));
+  const shareUrl = shareCampaign ? `${window.location.origin}/campaign/${shareCampaign.slug}` : '';
 
   const edit = (campaign: AppCampaign) => {
     setEditingId(campaign.id);
@@ -36,9 +38,11 @@ export const AdminDashboard: React.FC = () => {
     try {
       if (editingId) {
         if (!await app.updateCampaign(editingId, buildCampaign(form))) return;
+        setShareCampaign({ id: editingId, name: form.name, slug: form.slug, status: form.status });
         app.showToast('تم حفظ تعديلات الحملة.');
       } else {
-        await app.addCampaign(buildCampaign(form));
+        const createdId = await app.addCampaign(buildCampaign(form));
+        setShareCampaign({ id: createdId, name: form.name, slug: form.slug, status: form.status });
         app.showToast('تم إنشاء الحملة.');
       }
       reset();
@@ -50,6 +54,7 @@ export const AdminDashboard: React.FC = () => {
   return <main className="max-w-7xl mx-auto space-y-6 p-4 sm:p-6" dir="rtl">
     <header className="rounded-2xl bg-slate-950 p-6 text-white"><h1 className="text-2xl font-black">لوحة إدارة TestFlow</h1><p className="text-slate-300">الحملات، المطورون، وطلبات المختبرين</p></header>
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">{[['الحملات', app.campaigns.length], ['المختبرون', app.applications.length], ['طلبات مختبرين معلقة', app.applications.filter((item) => item.status === 'pending').length], ['طلبات مطورين معلقة', app.developers.filter((item) => item.status === 'pending_approval').length], ['الحملات النشطة', app.campaigns.filter((item) => item.status === 'active').length]].map(([label, count]) => <div key={String(label)} className="rounded-xl border bg-white p-4"><small>{label}</small><b className="block text-2xl">{count}</b></div>)}</div>
+    {shareCampaign && <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5"><h2 className="font-black text-emerald-950">رابط التسجيل للمختبرين: {shareCampaign.name}</h2><p className="mt-1 text-sm text-emerald-900">شارك هذا الرابط مع المختبرين ليتمكنوا من تعبئة طلب الانضمام مباشرة.</p><div className="mt-3 flex flex-col gap-2 sm:flex-row"><input readOnly value={shareUrl} dir="ltr" className="min-w-0 flex-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm" /><button type="button" onClick={() => navigator.clipboard.writeText(shareUrl).then(() => app.showToast('تم نسخ رابط التسجيل.'))} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-bold text-white"><Copy className="inline h-4 w-4" /> نسخ الرابط</button><a target="_blank" rel="noreferrer" href={shareUrl} className="rounded-lg border border-emerald-300 px-4 py-2 text-center text-sm font-bold text-emerald-800"><ExternalLink className="inline h-4 w-4" /> فتح الرابط</a></div>{shareCampaign.status !== 'active' && <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-amber-800"><span>الحملة ليست نشطة بعد؛ لن يتمكن المختبرون من فتح الرابط قبل تفعيلها.</span><button type="button" onClick={async () => { if (await app.updateCampaign(shareCampaign.id, { status: 'active' })) setShareCampaign({ ...shareCampaign, status: 'active' }); }} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-bold">تفعيل الحملة الآن</button></div>}</section>}
     <section className="rounded-2xl border bg-white p-5"><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-black">{editingId ? 'تعديل الحملة' : 'إنشاء حملة'}</h2>{editingId && <button type="button" onClick={reset} className="text-sm text-slate-600">إلغاء التعديل</button>}</div><form onSubmit={save} className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       <input required placeholder="اسم التطبيق" value={form.name} onChange={(e) => field('name', e.target.value)} className="rounded-lg border p-2" /><input required placeholder="slug مثل rawnak" value={form.slug} onChange={(e) => field('slug', e.target.value)} className="rounded-lg border p-2" /><input placeholder="اسم المطور / الجهة" value={form.developerName} onChange={(e) => field('developerName', e.target.value)} className="rounded-lg border p-2" />
       <select value={form.platform} onChange={(e) => field('platform', e.target.value as 'android' | 'ios')} className="rounded-lg border p-2"><option value="android">Android</option><option value="ios">iOS</option></select><select value={form.testType} onChange={(e) => field('testType', e.target.value as AppCampaign['testType'])} className="rounded-lg border p-2"><option value="google_play_closed">Google Play Closed Testing</option><option value="testflight">TestFlight</option></select><select value={form.category} onChange={(e) => field('category', e.target.value as AppCampaign['category'])} className="rounded-lg border p-2">{['tools', 'productivity', 'finance', 'health', 'social', 'games', 'education'].map((item) => <option key={item}>{item}</option>)}</select>
