@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider, useApp } from './context/AppContext';
 import { useAuth } from './context/AuthContext';
@@ -7,14 +7,17 @@ import { Footer } from './components/common/Footer';
 import { HomeView } from './components/home/HomeView';
 import { PublicCampaignPage } from './components/home/PublicCampaignPage';
 import { AppDetailModal } from './components/home/AppDetailModal';
-import { DeveloperLayout } from './components/developer/DeveloperLayout';
-import { AdminLayout } from './components/admin/AdminLayout';
 import { DeveloperRegisterModal } from './components/developer/DeveloperRegisterModal';
 import { LegalModal } from './components/legal/LegalModal';
 import { HowItWorksModal } from './components/common/HowItWorksModal';
 import { Toast } from './components/common/Toast';
 import { AppCampaign } from './types';
 import { firebaseConfigError } from './lib/firebase';
+
+// Dashboards are not needed for the public campaign page. Loading them only
+// after a privileged route is opened materially reduces the first page load.
+const DeveloperLayout = lazy(() => import('./components/developer/DeveloperLayout').then((module) => ({ default: module.DeveloperLayout })));
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then((module) => ({ default: module.AdminLayout })));
 
 function MainAppContent() {
   const {
@@ -93,7 +96,7 @@ function MainAppContent() {
     if (pathname === '/admin' && userRole !== 'admin') {
       window.history.replaceState({}, '', '/');
       setPathname('/');
-    } else if (pathname === '/developer' && userRole !== 'developer') {
+    } else if (pathname === '/developer' && !user) {
       window.history.replaceState({}, '', '/');
       setPathname('/');
     }
@@ -104,11 +107,9 @@ function MainAppContent() {
     const signedInUser = user || await signInWithGoogle();
     if (!signedInUser) return;
     const role = await refreshUserRole();
-    if (role === 'developer') {
-      navigate('/developer');
-      return;
-    }
-    setIsDevRegisterOpen(true);
+    // New accounts have no Firestore role yet. The developer route owns the
+    // request form, so it cannot disappear during an auth-state re-render.
+    navigate('/developer');
   };
 
   // This entry point is intentionally discreet. Google authentication only
@@ -129,14 +130,18 @@ function MainAppContent() {
     if (loading || roleLoading) {
       return <div className="min-h-screen bg-slate-950" aria-label="جارٍ التحقق من الصلاحية" />;
     }
-    return userRole === 'admin' ? <AdminLayout /> : null;
+    return userRole === 'admin' ? <Suspense fallback={<div className="min-h-screen bg-slate-950" />}><AdminLayout /></Suspense> : null;
   }
 
   if (pathname === '/developer') {
     if (loading || roleLoading) {
       return <div className="min-h-screen bg-slate-100" aria-label="جارٍ التحقق من الحساب" />;
     }
-    return userRole === 'developer' ? <DeveloperLayout /> : null;
+    if (userRole === 'developer' || userRole === 'developer_pending') {
+      return <Suspense fallback={<div className="min-h-screen bg-slate-100" />}><DeveloperLayout /></Suspense>;
+    }
+    // A signed-in account with no role is a new developer applicant.
+    return user ? <DeveloperRegisterModal isOpen onClose={() => navigate('/')} /> : null;
   }
 
   return (
