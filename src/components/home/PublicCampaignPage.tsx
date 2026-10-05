@@ -15,7 +15,11 @@ import {
   ShieldCheck,
   Info,
   Send,
+  Mail,
+  ExternalLink,
+  Star,
 } from 'lucide-react';
+import { submitTesterRating, submitTesterReport } from '../../lib/publicTesterFeedback';
 
 interface PublicCampaignPageProps {
   campaign: AppCampaign;
@@ -30,6 +34,14 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
+  const [reportError, setReportError] = useState('');
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState({ email: '', target: 'app' as 'app' | 'developer', rating: 5, comment: '' });
+  const [reportForm, setReportForm] = useState({ email: '', title: '', description: '', severity: 'medium' as 'low' | 'medium' | 'high' | 'critical' });
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [formData, setFormData] = useState({
@@ -52,6 +64,15 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
   );
 
   const publicUrl = `${window.location.origin}/campaign/${campaign.slug}`;
+  const safeSocialLinks = [
+    ['الموقع الإلكتروني', campaign.website],
+    ['Instagram', campaign.instagramUrl],
+    ['Facebook', campaign.facebookUrl],
+    ['X', campaign.xUrl],
+  ].filter((item): item is [string, string] => {
+    if (typeof item[1] !== 'string') return false;
+    try { return new URL(item[1]).protocol === 'https:'; } catch { return false; }
+  });
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -81,6 +102,34 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
       setIsSubmitted(true);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitFeedback = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFeedbackError('');
+    setFeedbackBusy(true);
+    try {
+      await submitTesterRating({ campaignId: campaign.id, ...feedbackForm });
+      setFeedbackSent(true);
+    } catch (error) {
+      setFeedbackError(error instanceof Error ? error.message : 'تعذر إرسال التقييم.');
+    } finally {
+      setFeedbackBusy(false);
+    }
+  };
+
+  const handleSubmitReport = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setReportError('');
+    setReportBusy(true);
+    try {
+      await submitTesterReport({ campaignId: campaign.id, ...reportForm });
+      setReportSent(true);
+    } catch (error) {
+      setReportError(error instanceof Error ? error.message : 'تعذر إرسال البلاغ.');
+    } finally {
+      setReportBusy(false);
     }
   };
 
@@ -115,6 +164,16 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
             </button>
           </div>
         </div>
+
+        {(campaign.supportEmail || safeSocialLinks.length > 0) && (
+          <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+            <strong className="text-slate-800">تواصل مع المطور:</strong>
+            {campaign.supportEmail && <a className="font-semibold text-blue-700" href={`mailto:${campaign.supportEmail}`}><Mail className="inline h-4 w-4" /> {campaign.supportEmail}</a>}
+            {safeSocialLinks.map(([label, url]) => (
+              <a key={label} className="font-semibold text-blue-700" href={url} target="_blank" rel="noreferrer"><ExternalLink className="inline h-4 w-4" /> {label}</a>
+            ))}
+          </section>
+        )}
 
         {/* Public Campaign Hero Card */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-md space-y-6">
@@ -392,6 +451,56 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
               </button>
             </form>
           )}
+        </section>
+
+        <section className="grid gap-5 lg:grid-cols-2">
+          <form onSubmit={handleSubmitFeedback} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 className="font-black text-slate-900"><Star className="inline h-4 w-4 text-amber-500" /> قيّم التجربة</h2>
+            <p className="text-xs text-slate-600">متاح بعد قبول طلبك. لا تحتاج إلى تسجيل دخول؛ استخدم البريد نفسه الذي سجلت به.</p>
+            {feedbackError && <p role="alert" className="rounded-lg bg-rose-50 p-2 text-sm text-rose-700">{feedbackError}</p>}
+            {feedbackSent ? <p role="status" className="text-sm font-bold text-emerald-700">شكراً لك، تم استلام تقييمك.</p> : <>
+              <label className="block space-y-1 text-xs font-bold">بريد التسجيل
+                <input required type="email" autoComplete="email" value={feedbackForm.email} onChange={(event) => setFeedbackForm({ ...feedbackForm, email: event.target.value })} className="w-full rounded-lg border p-2 font-normal" />
+              </label>
+              <label className="block space-y-1 text-xs font-bold">ما الذي تريد تقييمه؟
+                <select value={feedbackForm.target} onChange={(event) => setFeedbackForm({ ...feedbackForm, target: event.target.value as 'app' | 'developer' })} className="w-full rounded-lg border bg-white p-2 font-normal">
+                  <option value="app">التطبيق</option><option value="developer">المطور</option>
+                </select>
+              </label>
+              <label className="block space-y-1 text-xs font-bold">التقييم
+                <select value={feedbackForm.rating} onChange={(event) => setFeedbackForm({ ...feedbackForm, rating: Number(event.target.value) })} className="w-full rounded-lg border bg-white p-2 font-normal">
+                  {[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{'★'.repeat(rating)} ({rating}/5)</option>)}
+                </select>
+              </label>
+              <label className="block space-y-1 text-xs font-bold">تعليق (اختياري)
+                <textarea maxLength={2000} value={feedbackForm.comment} onChange={(event) => setFeedbackForm({ ...feedbackForm, comment: event.target.value })} className="min-h-20 w-full rounded-lg border p-2 font-normal" />
+              </label>
+              <button disabled={feedbackBusy} className="rounded-lg bg-blue-700 px-4 py-2 font-bold text-white disabled:opacity-50">{feedbackBusy ? 'جارٍ الإرسال…' : 'إرسال التقييم'}</button>
+            </>}
+          </form>
+
+          <form onSubmit={handleSubmitReport} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 className="font-black text-slate-900">إبلاغ إدارة TestFlow</h2>
+            <p className="text-xs text-slate-600">أرسل بلاغاً للإدارة عن مشكلة أو سلوك غير مناسب. يلزم قبول طلبك لهذه الحملة.</p>
+            {reportError && <p role="alert" className="rounded-lg bg-rose-50 p-2 text-sm text-rose-700">{reportError}</p>}
+            {reportSent ? <p role="status" className="text-sm font-bold text-emerald-700">تم استلام بلاغك وستراجعه الإدارة.</p> : <>
+              <label className="block space-y-1 text-xs font-bold">بريد التسجيل
+                <input required type="email" autoComplete="email" value={reportForm.email} onChange={(event) => setReportForm({ ...reportForm, email: event.target.value })} className="w-full rounded-lg border p-2 font-normal" />
+              </label>
+              <label className="block space-y-1 text-xs font-bold">عنوان البلاغ
+                <input required maxLength={160} value={reportForm.title} onChange={(event) => setReportForm({ ...reportForm, title: event.target.value })} className="w-full rounded-lg border p-2 font-normal" />
+              </label>
+              <label className="block space-y-1 text-xs font-bold">التفاصيل
+                <textarea required maxLength={3000} value={reportForm.description} onChange={(event) => setReportForm({ ...reportForm, description: event.target.value })} className="min-h-20 w-full rounded-lg border p-2 font-normal" />
+              </label>
+              <label className="block space-y-1 text-xs font-bold">الأهمية
+                <select value={reportForm.severity} onChange={(event) => setReportForm({ ...reportForm, severity: event.target.value as typeof reportForm.severity })} className="w-full rounded-lg border bg-white p-2 font-normal">
+                  <option value="low">منخفضة</option><option value="medium">متوسطة</option><option value="high">عالية</option><option value="critical">عاجلة</option>
+                </select>
+              </label>
+              <button disabled={reportBusy} className="rounded-lg bg-rose-700 px-4 py-2 font-bold text-white disabled:opacity-50">{reportBusy ? 'جارٍ الإرسال…' : 'إرسال البلاغ للإدارة'}</button>
+            </>}
+          </form>
         </section>
       </div>
     </div>

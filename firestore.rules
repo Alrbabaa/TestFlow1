@@ -7,7 +7,7 @@ service cloud.firestore {
     function manages(id) { return isAdmin() || (isDeveloper() && get(/databases/$(database)/documents/campaignPrivate/$(id)).data.developerId == request.auth.uid); }
     function text(v, n) { return v is string && v.size() > 0 && v.size() <= n; }
     function optionalText(v, n) { return v is string && v.size() <= n; }
-    function campaignFields() { return ['name','slug','developerId','developerName','platform','testType','category','tagline','description','campaignGoal','iconUrl','durationDays','requiredTestersCount','currentTestersCount','status','rewardTitle','rewardValue','testingInstructions','createdAt','updatedAt']; }
+    function campaignFields() { return ['name','slug','developerId','developerName','supportEmail','website','instagramUrl','facebookUrl','xUrl','platform','testType','category','tagline','description','campaignGoal','iconUrl','durationDays','requiredTestersCount','currentTestersCount','status','rewardTitle','rewardValue','testingInstructions','createdAt','updatedAt']; }
 
     match /users/{uid} {
       allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
@@ -44,6 +44,15 @@ service cloud.firestore {
       allow get, list: if signedIn() && manages(resource.data.campaignId);
       allow update: if signedIn() && manages(resource.data.campaignId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','developerNotes','updatedAt']) && request.resource.data.status in ['pending','accepted','waiting_for_whitelisting','ready_to_join','joined','active','completed','inactive','rejected'];
       allow delete: if signedIn() && manages(resource.data.campaignId);
+    }
+    match /testerFeedback/{id} {
+      allow get, list: if isAdmin();
+      allow create, update, delete: if false;
+    }
+    match /adminReports/{id} {
+      allow get, list: if isAdmin();
+      allow create, delete: if false;
+      allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) && request.resource.data.status in ['open','investigating','resolved','dismissed'];
     }
   }
 }

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { createCampaign as createFirestoreCampaign, decideDeveloperRequest, ensureCampaignSlug, setUserRole, submitApplication as submitFirestoreApplication, submitDeveloperRequest, subscribeApplications, subscribeDeveloperRequests, subscribePrivateCampaigns, subscribePublicCampaigns, subscribeWorkspaceCampaigns, updateApplication as updateFirestoreApplication, updateCampaignDocuments, deleteCampaignDocuments } from '../lib/firestore';
+import { createCampaign as createFirestoreCampaign, decideDeveloperRequest, ensureCampaignSlug, setUserRole, submitApplication as submitFirestoreApplication, submitDeveloperRequest, subscribeAdminReports, subscribeApplications, subscribeDeveloperRequests, subscribePrivateCampaigns, subscribePublicCampaigns, subscribeTesterFeedback, subscribeWorkspaceCampaigns, updateAdminReportStatus, updateApplication as updateFirestoreApplication, updateCampaignDocuments, deleteCampaignDocuments } from '../lib/firestore';
 import { useAuth } from './AuthContext';
 import type { AppCampaign, BugReport, DeveloperUser, EmailNotification, ReputationLevel, SecurityAuditEntry, TesterApplication, TesterFeedback, TesterStatus, TesterUser, UserRole } from '../types';
 
@@ -24,7 +24,7 @@ interface AppContextType {
   confirmTesterJoined: (applicationId: string) => void; requestDataDeletion: (email: string) => void;
   addCampaign: (campaign: Omit<AppCampaign, 'id' | 'createdAt' | 'currentTestersCount'>) => Promise<string>;
   updateCampaign: (campaignId: string, updates: Partial<AppCampaign>) => Promise<boolean>; removeCampaign: (campaignId: string) => Promise<boolean>;
-  updateApplicationStatus: (applicationId: string, newStatus: TesterStatus, notes?: string) => void; confirmWhitelisted: (applicationId: string) => void; confirmBulkWhitelisted: (applicationIds: string[]) => void;
+  updateApplicationStatus: (applicationId: string, newStatus: TesterStatus, notes?: string) => Promise<boolean>; confirmWhitelisted: (applicationId: string) => void; confirmBulkWhitelisted: (applicationIds: string[]) => void;
   updateBugStatus: (bugId: string, status: BugReport['status']) => void; registerDeveloper: (dev: { name: string; companyName: string; email: string; phone?: string; bio?: string; website?: string }) => Promise<void>;
   updateDeveloperStatus: (devId: string, status: DeveloperUser['status']) => void; updateTesterStatus: (testerId: string, status: TesterUser['status']) => void;
   updateTesterReputation: (testerId: string, level: ReputationLevel, score: number) => void; toggleCampaignFeatured: (campaignId: string) => void;
@@ -73,6 +73,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return subscribeDeveloperRequests((requests) => setDevelopers(requests.map((request) => ({ id: request.uid, name: request.name || '', companyName: request.companyName || '', email: request.email || '', bio: request.bio || '', status: request.status === 'approved' ? 'approved' : request.status === 'rejected' ? 'rejected' : 'pending_approval', submittedAt: today(), appsCount: 0 }))));
   }, [userRole]);
   useEffect(() => {
+    if (userRole !== 'admin') { setBugReports([]); setFeedbacks([]); return; }
+    const stopReports = subscribeAdminReports(setBugReports);
+    const stopFeedback = subscribeTesterFeedback(setFeedbacks);
+    return () => { stopReports(); stopFeedback(); };
+  }, [userRole]);
+  useEffect(() => {
     if (!user) { setCurrentTester(emptyTester); setCurrentDeveloper(emptyDeveloper); return; }
     setCurrentTester({ ...emptyTester, id: user.uid, name: user.displayName || 'User', email: user.email || '', googlePlayGmail: user.email || '', avatarUrl: user.photoURL || undefined, isVerified: true });
     if (userRole === 'developer' || userRole === 'developer_pending') return onSnapshot(doc(db, 'developerRequests', user.uid), (snap) => { const data = snap.data(); setCurrentDeveloper({ id: user.uid, name: data?.name || user.displayName || '', companyName: data?.companyName || '', email: user.email || '', status: userRole === 'developer' ? 'approved' : 'pending_approval', submittedAt: today(), appsCount: 0 }); });
@@ -89,7 +95,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addCampaign: AppContextType['addCampaign'] = async (data) => { if (!user || (userRole !== 'admin' && userRole !== 'developer')) throw new Error('Developer access is required.'); const id = crypto.randomUUID(); const campaign: AppCampaign = { ...data, id, developerId: user.uid, currentTestersCount: 0, createdAt: today() }; await createFirestoreCampaign(campaign); return id; };
   const updateCampaign: AppContextType['updateCampaign'] = async (id, updates) => { try { await updateCampaignDocuments(id, updates); return true; } catch { showToast('Could not save campaign changes.', 'error'); return false; } };
   const removeCampaign: AppContextType['removeCampaign'] = async (id) => { try { await deleteCampaignDocuments(id, campaigns.find((campaign) => campaign.id === id)?.slug); return true; } catch { showToast('Could not delete campaign.', 'error'); return false; } };
-  const updateApplicationStatus = (id: string, status: TesterStatus, notes?: string) => { void updateFirestoreApplication(id, { status, ...(notes ? { developerNotes: notes } : {}) }).catch(() => showToast('Could not update application.', 'error')); };
+  const updateApplicationStatus: AppContextType['updateApplicationStatus'] = async (id, status, notes) => {
+    try {
+      await updateFirestoreApplication(id, { status, ...(notes ? { developerNotes: notes } : {}) });
+      return true;
+    } catch {
+      showToast('Could not update application.', 'error');
+      return false;
+    }
+  };
   const registerDeveloper = async (input: Parameters<AppContextType['registerDeveloper']>[0]) => {
     if (!user) throw new Error('Google sign-in is required.');
     await submitDeveloperRequest(user.uid, input);
@@ -103,7 +117,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     currentUserRole: roleOverride === 'tester' ? currentUserRole : roleOverride, setCurrentUserRole, currentTester, currentDeveloper, setCurrentTester, setCurrentDeveloper, campaigns, applications, developers, testers, bugReports, feedbacks, emails, securityLogs, logSecurityEvent,
     isEmailMasked, setIsEmailMasked, isLockdownMode, setIsLockdownMode, isAntiBotEnabled, setIsAntiBotEnabled, isWatermarkEnforced, setIsWatermarkEnforced, isTwoFactorEnabled, setIsTwoFactorEnabled, clearSecurityLogs: () => setSecurityLogs([]), blockSuspiciousIp: noop, simulateCyberAttackTest: noop,
     selectedCampaignSlug, setSelectedCampaignSlug, activeTab, setActiveTab, toast, showToast, hideToast: () => setToast(null), applyToCampaign, toggleTaskCompletion, submitBugReport: noop as AppContextType['submitBugReport'], submitFeedback: noop as AppContextType['submitFeedback'], confirmTesterJoined, requestDataDeletion: noop,
-    addCampaign, updateCampaign, removeCampaign, updateApplicationStatus, confirmWhitelisted, confirmBulkWhitelisted: (ids) => ids.forEach(confirmWhitelisted), updateBugStatus: noop as AppContextType['updateBugStatus'], registerDeveloper, updateDeveloperStatus, updateTesterStatus: noop as AppContextType['updateTesterStatus'], updateTesterReputation: noop as AppContextType['updateTesterReputation'], toggleCampaignFeatured: (id) => { const item = campaigns.find((campaign) => campaign.id === id); if (item) void updateCampaign(id, { isFeatured: !item.isFeatured }); }, markEmailAsRead: noop, unreadEmailsCount: emails.filter((item) => !item.isRead).length, resetToDemoData: noop,
+    addCampaign, updateCampaign, removeCampaign, updateApplicationStatus, confirmWhitelisted, confirmBulkWhitelisted: (ids) => ids.forEach(confirmWhitelisted), updateBugStatus: (id, status) => { void updateAdminReportStatus(id, status).catch(() => showToast('تعذر تحديث حالة البلاغ.', 'error')); }, registerDeveloper, updateDeveloperStatus, updateTesterStatus: noop as AppContextType['updateTesterStatus'], updateTesterReputation: noop as AppContextType['updateTesterReputation'], toggleCampaignFeatured: (id) => { const item = campaigns.find((campaign) => campaign.id === id); if (item) void updateCampaign(id, { isFeatured: !item.isFeatured }); }, markEmailAsRead: noop, unreadEmailsCount: emails.filter((item) => !item.isRead).length, resetToDemoData: noop,
   }), [roleOverride, currentUserRole, currentTester, currentDeveloper, campaigns, applications, developers, testers, bugReports, feedbacks, emails, securityLogs, isEmailMasked, isLockdownMode, isAntiBotEnabled, isWatermarkEnforced, isTwoFactorEnabled, selectedCampaignSlug, activeTab, toast]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

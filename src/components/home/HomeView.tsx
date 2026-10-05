@@ -42,6 +42,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [rewardOnly, setRewardOnly] = useState(false);
   const [durationFilter, setDurationFilter] = useState<string>('all');
   const [countryFilter, setCountryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'remaining'>('newest');
 
   // Categories list
   const categories = [
@@ -84,11 +85,37 @@ export const HomeView: React.FC<HomeViewProps> = ({
       const matchDesc = camp.description.toLowerCase().includes(q);
       const matchTagline = camp.tagline.toLowerCase().includes(q);
       const matchDev = camp.developerName.toLowerCase().includes(q);
-      if (!matchName && !matchDesc && !matchTagline && !matchDev) return false;
+      const matchCategory =
+        categories.find((category) => category.id === camp.category)?.label.toLowerCase().includes(q) ?? false;
+      if (!matchName && !matchDesc && !matchTagline && !matchDev && !matchCategory) return false;
     }
 
     return true;
+  }).sort((first, second) => {
+    if (sortBy === 'remaining') {
+      const firstRemaining = Math.max(0, first.requiredTestersCount - first.currentTestersCount);
+      const secondRemaining = Math.max(0, second.requiredTestersCount - second.currentTestersCount);
+      return firstRemaining - secondRemaining;
+    }
+    return second.createdAt.localeCompare(first.createdAt);
   });
+
+  const hasActiveFilters =
+    Boolean(searchQuery.trim()) ||
+    platformFilter !== 'all' ||
+    categoryFilter !== 'all' ||
+    rewardOnly ||
+    durationFilter !== 'all' ||
+    countryFilter !== 'all';
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setPlatformFilter('all');
+    setCategoryFilter('all');
+    setRewardOnly(false);
+    setDurationFilter('all');
+    setCountryFilter('all');
+  };
 
   return (
     <div className="space-y-12 pb-16">
@@ -297,6 +324,66 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </select>
             </div>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+            <div className="flex items-center gap-2">
+              <label htmlFor="campaign-sort" className="text-xs font-semibold text-slate-500">
+                الترتيب:
+              </label>
+              <select
+                id="campaign-sort"
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value as 'newest' | 'remaining')}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="newest">الأحدث</option>
+                <option value="remaining">الأقرب لاكتمال العدد</option>
+              </select>
+            </div>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-50"
+              >
+                مسح كل الفلاتر
+              </button>
+            )}
+          </div>
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2" aria-label="الفلاتر النشطة">
+              <span className="text-xs font-semibold text-slate-500">تصفية حسب:</span>
+              {searchQuery.trim() && (
+                <button type="button" onClick={() => setSearchQuery('')} className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                  البحث: {searchQuery.trim()} <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {platformFilter !== 'all' && (
+                <button type="button" onClick={() => setPlatformFilter('all')} className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                  {platformFilter === 'android' ? 'Android' : 'iOS'} <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {categoryFilter !== 'all' && (
+                <button type="button" onClick={() => setCategoryFilter('all')} className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                  {categories.find((category) => category.id === categoryFilter)?.label} <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {rewardOnly && (
+                <button type="button" onClick={() => setRewardOnly(false)} className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                  بمكافأة <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {durationFilter !== 'all' && (
+                <button type="button" onClick={() => setDurationFilter('all')} className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                  {durationFilter === '14' ? '14 يوماً' : '10 أيام أو أقل'} <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {countryFilter !== 'all' && (
+                <button type="button" onClick={() => setCountryFilter('all')} className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                  {countryFilter} <span aria-hidden="true">×</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Section Title & Count */}
@@ -332,12 +419,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </p>
             <button
               onClick={() => {
-                setSearchQuery('');
-                setPlatformFilter('all');
-                setCategoryFilter('all');
-                setRewardOnly(false);
-                setDurationFilter('all');
-                setCountryFilter('all');
+                clearFilters();
               }}
               className="mt-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold"
             >

@@ -5,7 +5,7 @@ type InvitationRequest = {
 };
 
 const messages: Record<string, string> = {
-  'tester-not-ready': 'أكد أولاً أن بريد المختبر أُضيف إلى قائمة الاختبار، ثم غيّر الحالة إلى جاهز للانضمام.',
+  'tester-not-ready': 'أكد تسجيل المختبر أولاً قبل إرسال رسالة القبول ورابط التطبيق.',
   'campaign-access-denied': 'لا تملك صلاحية إرسال دعوة لهذه الحملة.',
   'email-service-unavailable': 'خدمة البريد غير مهيأة حالياً.',
   'email-delivery-failed': 'تعذر إرسال البريد. تحقق من إعداد Resend وحاول مرة أخرى.',

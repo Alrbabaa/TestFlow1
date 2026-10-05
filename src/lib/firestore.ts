@@ -13,7 +13,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { AppCampaign, TesterApplication } from '../types';
+import type { AppCampaign, BugReport, TesterApplication, TesterFeedback } from '../types';
 
 export const ADMIN_UIDS = new Set([
   'UEqGXe9B52Wp0T5sXfxcC72a5mq2',
@@ -40,6 +40,11 @@ export function publicCampaignFromDoc(id: string, data: Record<string, any>): Ap
     // a permitted dashboard session.
     developerId: data.developerId || '',
     developerName: data.developerName || '',
+    supportEmail: data.supportEmail || '',
+    website: data.website || '',
+    instagramUrl: data.instagramUrl || '',
+    facebookUrl: data.facebookUrl || '',
+    xUrl: data.xUrl || '',
     platform: data.platform || 'android',
     testType: data.testType || 'google_play_closed',
     testUrl: '',
@@ -99,6 +104,16 @@ export const subscribeApplications = (uid: string, admin: boolean, callback: (it
   (snapshot) => callback(snapshot.docs.map((item) => applicationFromDoc(item.id, item.data()))),
 );
 
+export const subscribeTesterFeedback = (callback: (items: TesterFeedback[]) => void) => onSnapshot(
+  collection(db, 'testerFeedback'),
+  (snapshot) => callback(snapshot.docs.map((item) => ({ id: item.id, ...item.data(), createdAt: dateString(item.data().createdAt) }) as TesterFeedback)),
+);
+
+export const subscribeAdminReports = (callback: (items: BugReport[]) => void) => onSnapshot(
+  collection(db, 'adminReports'),
+  (snapshot) => callback(snapshot.docs.map((item) => ({ id: item.id, ...item.data(), createdAt: dateString(item.data().createdAt) }) as BugReport)),
+);
+
 export const submitDeveloperRequest = (uid: string, input: { name: string; companyName: string; email: string; bio?: string }) => setDoc(doc(db, 'developerRequests', uid), {
   uid,
   name: input.name,
@@ -127,6 +142,8 @@ export const createCampaign = async (campaign: AppCampaign) => {
   if ((await getDoc(slugRef)).exists()) throw new Error('Campaign slug is already in use.');
   const publicData = {
     name: campaign.name, slug, developerId: campaign.developerId, developerName: campaign.developerName,
+    supportEmail: campaign.supportEmail || '', website: campaign.website || '',
+    instagramUrl: campaign.instagramUrl || '', facebookUrl: campaign.facebookUrl || '', xUrl: campaign.xUrl || '',
     platform: campaign.platform, testType: campaign.testType, category: campaign.category, tagline: campaign.tagline,
     description: campaign.description, campaignGoal: campaign.campaignGoal || '', iconUrl: campaign.iconUrl,
     durationDays: campaign.durationDays, requiredTestersCount: campaign.requiredTestersCount, currentTestersCount: 0,
@@ -154,7 +171,7 @@ export const updateCampaignDocuments = async (id: string, updates: Partial<AppCa
   const { testUrl } = updates;
   // Keep updates aligned with the public document and its Security Rules.
   // In particular, never leak testUrl or reassign developerId.
-  const allowedPublicKeys: (keyof AppCampaign)[] = ['name', 'developerName', 'platform', 'testType', 'category', 'tagline', 'description', 'campaignGoal', 'iconUrl', 'durationDays', 'requiredTestersCount', 'status', 'rewardTitle', 'rewardValue', 'testingInstructions'];
+  const allowedPublicKeys: (keyof AppCampaign)[] = ['name', 'developerName', 'supportEmail', 'website', 'instagramUrl', 'facebookUrl', 'xUrl', 'platform', 'testType', 'category', 'tagline', 'description', 'campaignGoal', 'iconUrl', 'durationDays', 'requiredTestersCount', 'status', 'rewardTitle', 'rewardValue', 'testingInstructions'];
   const publicUpdates = Object.fromEntries(allowedPublicKeys.flatMap((key) => updates[key] === undefined ? [] : [[key, updates[key]]]));
   if (Object.keys(publicUpdates).length) await updateDoc(doc(db, 'publicCampaigns', id), { ...publicUpdates, updatedAt: serverTimestamp() });
   if (typeof testUrl === 'string') await updateDoc(doc(db, 'campaignPrivate', id), { testUrl, updatedAt: serverTimestamp() });
@@ -169,6 +186,7 @@ export const deleteCampaignDocuments = async (id: string, slug?: string) => {
 };
 
 export const updateApplication = (id: string, values: Partial<TesterApplication>) => updateDoc(doc(db, 'applications', id), { ...values, updatedAt: serverTimestamp() });
+export const updateAdminReportStatus = (id: string, status: BugReport['status']) => updateDoc(doc(db, 'adminReports', id), { status });
 export const decideDeveloperRequest = async (uid: string, decision: 'approve' | 'reject') => {
   // Approval and role change must be atomic; no temporary state can grant an
   // incomplete developer request access.

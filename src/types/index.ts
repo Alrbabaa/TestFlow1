@@ -97,6 +97,11 @@ export interface AppCampaign {
   screenshots: string[];
   developerId: string;
   developerName: string;
+  supportEmail?: string;
+  website?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  xUrl?: string;
   platform: 'android' | 'ios' | 'both';
   testType: 'google_play_closed' | 'testflight' | 'apk_download' | 'web_beta';
   testUrl: string; // رابط الاختبار المغلق - لا يظهر للمختبر إلا بحالة ready_to_join أو بعدها
@@ -150,6 +155,7 @@ export interface TesterApplication {
 export interface BugReport {
   id: string;
   campaignId: string;
+  applicationId: string;
   appName: string;
   testerId: string;
   testerName: string;
@@ -166,9 +172,11 @@ export interface BugReport {
 export interface TesterFeedback {
   id: string;
   campaignId: string;
+  applicationId: string;
   appName: string;
   testerId: string;
   testerName: string;
+  target: 'app' | 'developer';
   rating: number; // 1 - 5
   category: 'ui_ux' | 'performance' | 'feature_request' | 'general';
   comment: string;

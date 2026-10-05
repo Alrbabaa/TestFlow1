@@ -92,7 +92,9 @@ export default async function handler(request, response) {
 
     if (!isAdmin && !ownsCampaign) return fail(response, 403, 'campaign-access-denied');
     if (application?.campaignId !== campaignId) return fail(response, 400, 'application-campaign-mismatch');
-    if (application?.status !== 'ready_to_join') return fail(response, 409, 'tester-not-ready');
+    if (!['accepted', 'ready_to_join'].includes(application?.status)) {
+      return fail(response, 409, 'tester-not-ready');
+    }
 
     const testUrl = privateCampaign?.testUrl;
     const recipient = application?.testerEmail;

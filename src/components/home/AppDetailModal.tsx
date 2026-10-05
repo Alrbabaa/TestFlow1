@@ -63,7 +63,9 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 }) => {
   const { currentTester, applyToCampaign, applications } = useApp();
 
-  const [activeStep, setActiveStep] = useState<'details' | 'apply' | 'success'>('details');
+  const [activeStep, setActiveStep] = useState<
+    'details' | 'apply_profile' | 'apply_device' | 'success'
+  >('details');
 
   // Form states
   const [formData, setFormData] = useState({
@@ -137,6 +139,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleNextApplicationStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setActiveStep('apply_device');
   };
 
   return (
@@ -350,15 +358,25 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           )}
 
           {/* Step 2: Application Form */}
-          {activeStep === 'apply' && (
-            <form onSubmit={handleApply} className="space-y-4">
+          {(activeStep === 'apply_profile' || activeStep === 'apply_device') && (
+            <form
+              onSubmit={activeStep === 'apply_profile' ? handleNextApplicationStep : handleApply}
+              className="space-y-4"
+            >
               <div className="border-b border-slate-100 pb-3">
                 <h3 className="font-bold text-slate-900 text-base">
                   طلب الانضمام لاختبار: {campaign.name}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  يرجى التأكد من دقة البيانات وخاصة البريد الإلكتروني المربوط بمتجر التطبيقات
+                  الخطوة {activeStep === 'apply_profile' ? '1 من 2: بياناتك' : '2 من 2: جهازك والتزاماتك'}
                 </p>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-label="تقدم نموذج التقديم">
+                  <div
+                    className={`h-full rounded-full bg-blue-600 transition-all ${
+                      activeStep === 'apply_profile' ? 'w-1/2' : 'w-full'
+                    }`}
+                  />
+                </div>
               </div>
 
               {errorMessage && (
@@ -367,8 +385,10 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 </div>
               )}
 
-              {/* Name & Primary Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {activeStep === 'apply_profile' && (
+                <>
+                  {/* Name & Platform Email */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">الاسم الكامل *</label>
                   <input
@@ -423,8 +443,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                   ))}
                 </select>
               </div>
+                </>
+              )}
 
               {/* OS Selection (Clean options with NO manual typing) */}
+              {activeStep === 'apply_device' && (
+                <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -550,14 +574,18 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                   </span>
                 </label>
               </div>
+                </>
+              )}
 
               <div className="pt-4 flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => setActiveStep('details')}
+                  onClick={() =>
+                    setActiveStep(activeStep === 'apply_profile' ? 'details' : 'apply_profile')
+                  }
                   className="px-4 py-2 rounded-xl text-slate-600 text-xs font-bold hover:bg-slate-100"
                 >
-                  العودة لتفاصيل التطبيق
+                  {activeStep === 'apply_profile' ? 'العودة لتفاصيل التطبيق' : 'رجوع'}
                 </button>
 
                 <button
@@ -565,7 +593,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                   disabled={isSubmitting}
                   className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5"
                 >
-                  {isSubmitting ? 'جارٍ حفظ الطلب...' : 'تأكيد وإرسال طلب الانضمام'}
+                  {isSubmitting
+                    ? 'جارٍ حفظ الطلب...'
+                    : activeStep === 'apply_profile'
+                    ? 'التالي: بيانات الجهاز'
+                    : 'تأكيد وإرسال طلب الانضمام'}
                 </button>
               </div>
             </form>
@@ -628,7 +660,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               </button>
             ) : (
               <button
-                onClick={() => setActiveStep('apply')}
+                onClick={() => setActiveStep('apply_profile')}
                 className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5"
               >
                 تقديم طلب انضمام للاختبار
