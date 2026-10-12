@@ -2,20 +2,38 @@
 
 @layer base {
   html {
-    min-width: 320px;
+    width: 100%;
+    max-width: 100%;
     min-height: 100%;
     background: #f8fafc;
+    overflow-x: hidden;
   }
 
   html, body, #root {
+    width: 100%;
+    max-width: 100%;
     min-height: 100%;
   }
 
   body {
     font-family: 'Cairo', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     overflow-x: hidden;
+    overscroll-behavior-x: none;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+  }
+
+  /*
+   * Some Android browsers calculate the page width from an overflowing flex
+   * child. Keep the application viewport constrained and let intentionally
+   * scrollable controls (filters and tables) scroll inside their own area.
+   */
+  #root {
+    overflow-x: hidden;
+  }
+
+  #root > * {
+    min-width: 0;
   }
 
   img, video, canvas {
@@ -27,6 +45,12 @@
     input, select, textarea {
       font-size: 16px;
     }
+  }
+}
+
+@supports (overflow: clip) {
+  html, body, #root {
+    overflow-x: clip;
   }
 }
 

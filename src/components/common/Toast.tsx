@@ -12,7 +12,7 @@ export const Toast: React.FC = () => {
   const isError = toast.type === 'error';
 
   return (
-    <div className="fixed bottom-6 left-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300 max-w-sm w-full">
+    <div className="fixed inset-x-4 bottom-4 z-50 w-auto max-w-sm animate-in fade-in slide-in-from-bottom-5 duration-300 sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-full">
       <div
         className={`flex items-start gap-3 p-4 rounded-2xl shadow-xl border backdrop-blur-md transition-all ${
           isSuccess
