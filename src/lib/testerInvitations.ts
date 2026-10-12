@@ -9,6 +9,8 @@ const messages: Record<string, string> = {
   'campaign-access-denied': 'لا تملك صلاحية إرسال دعوة لهذه الحملة.',
   'email-service-unavailable': 'خدمة البريد غير مهيأة حالياً.',
   'email-delivery-failed': 'تعذر إرسال البريد. تحقق من إعداد Resend وحاول مرة أخرى.',
+  'invitation-in-progress': 'يجري إرسال الدعوة بالفعل. انتظر لحظة ثم حدّث القائمة.',
+  'invitation-cooldown': 'أُرسلت دعوة لهذا المختبر مؤخراً. أعد المحاولة بعد خمس دقائق.',
   'authentication-required': 'سجّل الدخول مرة أخرى ثم أعد المحاولة.',
   'authentication-invalid': 'انتهت جلسة الدخول. سجّل الدخول مرة أخرى.',
 };

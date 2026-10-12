@@ -150,6 +150,9 @@ export interface TesterApplication {
   activityScore: number; // 0 - 100
   lastActiveDate: string;
   developerNotes?: string;
+  invitationStatus?: 'sending' | 'sent' | 'failed';
+  invitationCount?: number;
+  lastInvitationSentAt?: string;
 }
 
 export interface BugReport {

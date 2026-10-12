@@ -81,6 +81,9 @@ export function applicationFromDoc(id: string, data: Record<string, any>): Teste
     currentDay: data.currentDay || 0, completedTaskIds: data.completedTaskIds || [],
     activityScore: data.activityScore || 50, lastActiveDate: dateString(data.updatedAt || data.createdAt),
     developerNotes: data.developerNotes,
+    invitationStatus: data.invitationStatus,
+    invitationCount: typeof data.invitationCount === 'number' ? data.invitationCount : 0,
+    lastInvitationSentAt: data.lastInvitationSentAt ? dateString(data.lastInvitationSentAt) : undefined,
   };
 }
 

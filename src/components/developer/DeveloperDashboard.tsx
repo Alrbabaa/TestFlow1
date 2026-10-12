@@ -82,16 +82,13 @@ export const DeveloperDashboard: React.FC = () => {
     }
   };
 
-  const sendInvitation = async (application: TesterApplication, confirmAcceptance = false) => {
+  const sendInvitation = async (application: TesterApplication) => {
     if (!user) return;
     setSendingId(application.id);
     try {
-      if (confirmAcceptance && !await app.updateApplicationStatus(application.id, 'accepted')) return;
       const idToken = await user.getIdToken();
       await sendTesterInvitation({ campaignId: application.campaignId, applicationId: application.id, idToken });
-      app.showToast(confirmAcceptance
-        ? 'تم تأكيد التسجيل وإرسال رسالة القبول ورابط التطبيق.'
-        : 'تم إرسال رابط الاختبار إلى المختبر عبر البريد.');
+      app.showToast('تم إرسال رابط الاختبار إلى المختبر عبر البريد.');
     } catch (error) {
       app.showToast(error instanceof Error ? error.message : 'تعذر إرسال رابط الاختبار.', 'error');
     } finally {
@@ -101,10 +98,10 @@ export const DeveloperDashboard: React.FC = () => {
 
   const renderActions = (item: TesterApplication, busy: boolean) => (
     <div className="flex flex-wrap gap-2">
-      {item.status === 'pending' && <button disabled={busy} onClick={() => void sendInvitation(item, true)} className="font-bold text-emerald-700 disabled:opacity-50"><Mail className="inline h-4 w-4" /> {busy ? 'جارٍ التأكيد والإرسال…' : 'تأكيد التسجيل وإرسال الرابط'}</button>}
+      {item.status === 'pending' && <button disabled={busy} onClick={() => changeStatus(item, 'accepted')} className="font-bold text-emerald-700 disabled:opacity-50">قبول الطلب</button>}
       {item.status === 'accepted' && <button onClick={() => changeStatus(item, 'ready_to_join')} className="font-bold text-blue-700">تأكيد الجهوزية</button>}
-      {item.status === 'accepted' && <button disabled={busy} onClick={() => void sendInvitation(item)} className="font-bold text-blue-700 disabled:opacity-50"><Mail className="inline h-4 w-4" /> {busy ? 'جارٍ الإرسال…' : 'إعادة إرسال رسالة القبول'}</button>}
       {item.status === 'ready_to_join' && <button disabled={busy} onClick={() => void sendInvitation(item)} className="font-bold text-blue-700 disabled:opacity-50"><Mail className="inline h-4 w-4" /> {busy ? 'جارٍ الإرسال…' : 'إرسال رابط الاختبار'}</button>}
+      {item.lastInvitationSentAt && <small className="w-full text-slate-500">آخر إرسال: {item.lastInvitationSentAt}</small>}
     </div>
   );
 

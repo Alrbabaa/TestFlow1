@@ -1,6 +1,6 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 
 // Keep this list aligned with firestore.rules. A document role is also
 // accepted so that future administrators can be managed from the dashboard.
@@ -49,6 +49,11 @@ ${testUrl}
 إذا كان الرابط لا يعمل بعد، فتأكد من أنك تستخدم البريد الذي تم تسجيله وأن صاحب الحملة أضافه إلى قائمة الاختبار في Google Play أو TestFlight.
 
 مع تحيات فريق TestFlow`;
+
+const DELIVERY_LOCK_SECONDS = 60;
+const RESEND_COOLDOWN_SECONDS = 5 * 60;
+
+const timestampMillis = (value) => value instanceof Timestamp ? value.toMillis() : 0;
 
 export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store');
@@ -109,6 +114,29 @@ export default async function handler(request, response) {
       return fail(response, 503, 'email-service-unavailable');
     }
 
+    // Claim a short, server-only lock before calling Resend. This prevents two
+    // browser tabs from sending duplicate invitations simultaneously. The
+    // cooldown is based on a confirmed delivery and does not expose testUrl.
+    const applicationRef = database.collection('applications').doc(applicationId);
+    const now = Date.now();
+    const lockResult = await database.runTransaction(async (transaction) => {
+      const latest = await transaction.get(applicationRef);
+      if (!latest.exists) return 'record-not-found';
+      const latestData = latest.data();
+      if (latestData?.campaignId !== campaignId) return 'application-campaign-mismatch';
+      if (latestData?.status !== 'ready_to_join') return 'tester-not-ready';
+      if (timestampMillis(latestData?.invitationLockUntil) > now) return 'invitation-in-progress';
+      if (now - timestampMillis(latestData?.lastInvitationSentAt) < RESEND_COOLDOWN_SECONDS * 1000) return 'invitation-cooldown';
+
+      transaction.update(applicationRef, {
+        invitationLockUntil: Timestamp.fromMillis(now + DELIVERY_LOCK_SECONDS * 1000),
+        lastInvitationAttemptAt: FieldValue.serverTimestamp(),
+        invitationStatus: 'sending',
+      });
+      return 'locked';
+    });
+    if (lockResult !== 'locked') return fail(response, lockResult === 'invitation-in-progress' ? 429 : 409, lockResult);
+
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -130,8 +158,22 @@ export default async function handler(request, response) {
     if (!resendResponse.ok) {
       // Do not log provider responses because they can contain recipient data.
       console.error('Resend rejected tester invitation.', { status: resendResponse.status, campaignId, applicationId });
+      await applicationRef.update({ invitationLockUntil: FieldValue.delete(), invitationStatus: 'failed' });
+      await database.collection('invitationAudit').add({
+        campaignId, applicationId, actorUid: caller.uid, status: 'failed', createdAt: FieldValue.serverTimestamp(),
+      });
       return fail(response, 502, 'email-delivery-failed');
     }
+
+    await applicationRef.update({
+      invitationLockUntil: FieldValue.delete(),
+      lastInvitationSentAt: FieldValue.serverTimestamp(),
+      invitationStatus: 'sent',
+      invitationCount: FieldValue.increment(1),
+    });
+    await database.collection('invitationAudit').add({
+      campaignId, applicationId, actorUid: caller.uid, status: 'sent', createdAt: FieldValue.serverTimestamp(),
+    });
 
     return response.status(200).json({ ok: true });
   } catch (error) {

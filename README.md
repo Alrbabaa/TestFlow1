@@ -63,7 +63,11 @@ Play closed-test or TestFlight list, then select **ready_to_join**. The
 Firebase ID token. The function verifies the token, campaign ownership (or
 administrator role), application/campaign relationship, and readiness state on
 the server before reading the private `testUrl` and sending the email through
-Resend. The browser never receives the private test URL.
+Resend. The browser never receives the private test URL. A server-side lock
+prevents concurrent sends, and a confirmed invitation has a five-minute
+resend cooldown. Minimal delivery status is recorded in the protected
+`invitationAudit` collection and on the application; neither record contains
+the private test URL.
 
 ## First campaign: Rawnak / رونق
 
