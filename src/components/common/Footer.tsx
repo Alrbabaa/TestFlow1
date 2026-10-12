@@ -33,20 +33,6 @@ export const Footer: React.FC<FooterProps> = ({
                 حماية خصوصية وسرية التطبيقات
               </span>
             </div>
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-xs">
-              <div className="flex items-center gap-3">
-                <img src="/artistic-minds-logo.jpg" alt="Artistic Minds" className="h-12 w-12 rounded-lg border border-slate-700 object-cover" />
-                <div><p className="font-bold text-white">منصة من Artistic Minds</p><p className="mt-1 text-slate-400">حلول رقمية وتجارب تطبيقات أفضل.</p></div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2">
-                <a href="https://artisticmindsa.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><Globe className="h-3.5 w-3.5" /> الموقع</a>
-                <a href="mailto:artisticmindsa.r@gmail.com" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><Mail className="h-3.5 w-3.5" /> تواصل معنا</a>
-                <a href="https://www.tiktok.com/@artistic.minds8?_r=1&_t=ZS-98yHtzRROoK" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><Music2 className="h-3.5 w-3.5" /> TikTok</a>
-                <a href="https://x.com/ArtisticMindsa" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><span className="font-bold">X</span></a>
-                <a href="https://www.linkedin.com/in/artistic-minds-undefined-813b74423?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><Linkedin className="h-3.5 w-3.5" /> LinkedIn</a>
-                <a href="https://www.instagram.com/artistic_minds.24?igsh=YjRsZ3NjeGxhdGo3" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><Instagram className="h-3.5 w-3.5" /> Instagram</a>
-              </div>
-            </div>
           </div>
 
           {/* Quick links */}
@@ -119,6 +105,24 @@ export const Footer: React.FC<FooterProps> = ({
           </button>
         </div>
 
+        <section className="mt-3 flex flex-col items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-center" aria-label="الشركة الأم">
+          <div className="flex items-center gap-2">
+            <img src="/artistic-minds-logo.jpg" alt="Artistic Minds" className="h-9 w-9 rounded-lg border border-slate-700 object-cover" />
+            <div className="text-right" dir="rtl">
+              <p className="text-xs font-black text-slate-100">الشركة الأم: Artistic Minds</p>
+              <p className="text-[11px] text-slate-400">TestFlow إحدى منتجات Artistic Minds</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-2">
+            <a aria-label="الموقع الرسمي لـ Artistic Minds" title="الموقع الرسمي" href="https://artisticmindsa.com" target="_blank" rel="noreferrer" className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"><Globe className="h-4 w-4" /></a>
+            <a aria-label="البريد الإلكتروني لـ Artistic Minds" title="البريد الإلكتروني" href="mailto:artisticmindsa.r@gmail.com" className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"><Mail className="h-4 w-4" /></a>
+            <a aria-label="TikTok Artistic Minds" title="TikTok" href="https://www.tiktok.com/@artistic.minds8?_r=1&_t=ZS-98yHtzRROoK" target="_blank" rel="noreferrer" className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"><Music2 className="h-4 w-4" /></a>
+            <a aria-label="X Artistic Minds" title="X" href="https://x.com/ArtisticMindsa" target="_blank" rel="noreferrer" className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"><span className="text-sm font-black leading-none">X</span></a>
+            <a aria-label="LinkedIn Artistic Minds" title="LinkedIn" href="https://www.linkedin.com/in/artistic-minds-undefined-813b74423?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noreferrer" className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"><Linkedin className="h-4 w-4" /></a>
+            <a aria-label="Instagram Artistic Minds" title="Instagram" href="https://www.instagram.com/artistic_minds.24?igsh=YjRsZ3NjeGxhdGo3" target="_blank" rel="noreferrer" className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"><Instagram className="h-4 w-4" /></a>
+          </div>
+        </section>
+
         {/* Bottom copyright */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
           <p>© {new Date().getFullYear()} TestFlow. جميع الحقوق محفوظة.</p>
@@ -128,6 +132,7 @@ export const Footer: React.FC<FooterProps> = ({
             </span>
           </div>
         </div>
+
       </div>
     </footer>
   );
