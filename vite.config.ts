@@ -5,6 +5,12 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      // Firebase Firestore requires BigInt support; ES2020 covers current
+      // Android WebView and mobile Safari without requiring desktop mode.
+      target: 'es2020',
+      cssTarget: 'safari12',
+    },
     server: {
       host: '0.0.0.0',
       port: 3000,
