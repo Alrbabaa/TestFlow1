@@ -102,6 +102,8 @@ export interface AppCampaign {
   instagramUrl?: string;
   facebookUrl?: string;
   xUrl?: string;
+  applicationStatusGuideName?: string;
+  applicationStatusGuideUrl?: string;
   platform: 'android' | 'ios' | 'both';
   testType: 'google_play_closed' | 'testflight' | 'apk_download' | 'web_beta';
   testUrl: string; // رابط الاختبار المغلق - لا يظهر للمختبر إلا بحالة ready_to_join أو بعدها

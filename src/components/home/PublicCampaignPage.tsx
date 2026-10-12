@@ -26,6 +26,18 @@ interface PublicCampaignPageProps {
   onBackToAll: () => void;
 }
 
+const applicationStatusCopy = {
+  pending: { title: 'طلبك قيد المراجعة', detail: 'سيراجع صاحب الحملة طلبك قريباً.' },
+  accepted: { title: 'تم قبول طلبك', detail: 'يجري تجهيز الوصول إلى الاختبار.' },
+  waiting_for_whitelisting: { title: 'يجري إعداد الوصول', detail: 'سيُضاف بريدك إلى قائمة الاختبار قبل إرسال الرابط.' },
+  ready_to_join: { title: 'الدعوة جاهزة', detail: 'تحقق من بريدك الإلكتروني للحصول على رابط الاختبار.' },
+  joined: { title: 'انضممت إلى الاختبار', detail: 'شكراً لمشاركتك في تجربة التطبيق.' },
+  active: { title: 'اختبارك نشط', detail: 'استمر في استخدام التطبيق وفق تعليمات الحملة.' },
+  completed: { title: 'اكتمل الاختبار', detail: 'شكراً لإتمامك فترة الاختبار.' },
+  inactive: { title: 'الاختبار غير نشط', detail: 'تواصل مع صاحب الحملة إذا احتجت إلى مساعدة.' },
+  rejected: { title: 'لم يُقبل الطلب', detail: 'يمكنك استكشاف حملات أخرى متاحة.' },
+} as const;
+
 export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
   campaign,
   onBackToAll,
@@ -62,6 +74,8 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
         (Boolean(formData.email || currentTester.email) &&
           a.testerEmail.toLowerCase() === (formData.email || currentTester.email).toLowerCase()))
   );
+  const applicationStatus = existingApp ? applicationStatusCopy[existingApp.status] : null;
+  const requiredFieldsReady = Boolean(formData.name.trim() && formData.email.trim());
 
   const publicUrl = `${window.location.origin}/campaign/${campaign.slug}`;
   const safeSocialLinks = [
@@ -73,6 +87,10 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
     if (typeof item[1] !== 'string') return false;
     try { return new URL(item[1]).protocol === 'https:'; } catch { return false; }
   });
+  const applicationStatusGuideUrl = (() => {
+    if (!campaign.applicationStatusGuideUrl) return '';
+    try { return new URL(campaign.applicationStatusGuideUrl).protocol === 'https:' ? campaign.applicationStatusGuideUrl : ''; } catch { return ''; }
+  })();
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -212,7 +230,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
               {existingApp ? (
                 <span className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs flex items-center justify-center gap-2">
                   <CheckCircle2 className="w-4 h-4" />
-                  طلبك قيد المراجعة
+                  {applicationStatus?.title || 'تم تسجيل طلبك'}
                 </span>
               ) : (
                 <button
@@ -377,6 +395,15 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
               <p className="text-sm text-slate-600 leading-relaxed">
                 تم تسجيل طلبك. سيرسل صاحب الحملة رابط الاختبار إلى بريدك عند قبولك؛ وقد لا يعمل الرابط حتى تتم إضافة بريدك إلى قائمة الاختبار أو تأكيد جهوزية الانضمام.
               </p>
+              <ol className="grid gap-2 rounded-2xl bg-slate-50 p-4 text-right text-xs text-slate-700 sm:grid-cols-3">
+                <li><b className="text-blue-700">1.</b> يراجع صاحب الحملة طلبك</li>
+                <li><b className="text-blue-700">2.</b> يضيف بريدك إلى قائمة الاختبار</li>
+                <li><b className="text-blue-700">3.</b> يصلك الرابط عبر البريد</li>
+              </ol>
+              {campaign.applicationStatusGuideName && <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-right text-xs text-blue-950">
+                <b>متابعة حالة الطلب:</b> {campaign.applicationStatusGuideName}
+                {applicationStatusGuideUrl && <a href={applicationStatusGuideUrl} target="_blank" rel="noreferrer" className="mr-2 inline-flex items-center gap-1 font-bold text-blue-700 underline"><ExternalLink className="h-3.5 w-3.5" /> فتح الرابط</a>}
+              </div>}
               <button onClick={onBackToAll} className="h-10 px-5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">
                 استكشاف حملات أخرى
               </button>
@@ -384,14 +411,20 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
           ) : existingApp ? (
             <div className="py-5 text-center space-y-2">
               <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-600" />
-              <h2 className="text-lg font-black text-slate-900">طلبك قيد المراجعة</h2>
-              <p className="text-xs text-slate-600">لا حاجة لإرسال طلب آخر لهذه الحملة.</p>
+              <h2 className="text-lg font-black text-slate-900">{applicationStatus?.title || 'تم تسجيل طلبك'}</h2>
+              <p className="text-xs text-slate-600">{applicationStatus?.detail || 'لا حاجة لإرسال طلب آخر لهذه الحملة.'}</p>
+              {campaign.applicationStatusGuideName && <p className="text-xs text-blue-700">لمتابعة الحالة: {campaign.applicationStatusGuideName}{applicationStatusGuideUrl && <> — <a className="font-bold underline" href={applicationStatusGuideUrl} target="_blank" rel="noreferrer">فتح الرابط</a></>}</p>}
             </div>
           ) : (
             <form onSubmit={handleSubmitApplication} className="max-w-3xl mx-auto space-y-5">
               <div className="rounded-2xl bg-blue-50 p-5 text-center space-y-2">
                 <h2 className="text-lg sm:text-xl font-black text-slate-900">سجّل اهتمامك بالتجربة</h2>
                 <p className="text-sm text-slate-600">أدخل اسمك وبريدك فقط، وسنتواصل معك إذا تم قبولك.</p>
+                <div className="flex flex-wrap justify-center gap-2 pt-1 text-[11px] font-bold text-blue-800">
+                  <span className="rounded-full bg-white px-2.5 py-1">1. بياناتك</span>
+                  <span className="rounded-full bg-white px-2.5 py-1">2. مراجعة الطلب</span>
+                  <span className="rounded-full bg-white px-2.5 py-1">3. رابط عبر البريد</span>
+                </div>
               </div>
 
               {errorMessage && <div role="alert" className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">{errorMessage}</div>}
@@ -445,13 +478,22 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
                 </label>
               </div>}
 
-              <button type="submit" disabled={isSubmitting} className="h-11 w-full sm:w-auto px-6 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-sm font-bold flex items-center justify-center gap-2">
+              <p className="text-xs text-slate-500">لن يظهر رابط الاختبار هنا؛ يُرسل فقط إلى البريد بعد قبول الطلب وتجهيز الوصول.</p>
+              <button type="submit" disabled={isSubmitting || !requiredFieldsReady} className="h-11 w-full sm:w-auto px-6 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-sm font-bold flex items-center justify-center gap-2">
                 <Send className="w-4 h-4" />
                 {isSubmitting ? 'جارٍ تسجيل طلبك...' : 'تسجيل اهتمامي'}
               </button>
             </form>
           )}
         </section>
+
+        {!existingApp && !isSubmitted && (
+          <div className="fixed inset-x-4 bottom-4 z-20 sm:hidden">
+            <button onClick={scrollToApplication} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white shadow-lg shadow-blue-900/20">
+              <Send className="h-4 w-4" /> سجّل اهتمامك بالتجربة
+            </button>
+          </div>
+        )}
 
         <section className="grid gap-5 lg:grid-cols-2">
           <form onSubmit={handleSubmitFeedback} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">

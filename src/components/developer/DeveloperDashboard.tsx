@@ -97,10 +97,11 @@ export const DeveloperDashboard: React.FC = () => {
   };
 
   const renderActions = (item: TesterApplication, busy: boolean) => (
-    <div className="flex flex-wrap gap-2">
-      {item.status === 'pending' && <button disabled={busy} onClick={() => changeStatus(item, 'accepted')} className="font-bold text-emerald-700 disabled:opacity-50">قبول الطلب</button>}
-      {item.status === 'accepted' && <button onClick={() => changeStatus(item, 'ready_to_join')} className="font-bold text-blue-700">تأكيد الجهوزية</button>}
-      {item.status === 'ready_to_join' && <button disabled={busy} onClick={() => void sendInvitation(item)} className="font-bold text-blue-700 disabled:opacity-50"><Mail className="inline h-4 w-4" /> {busy ? 'جارٍ الإرسال…' : 'إرسال رابط الاختبار'}</button>}
+    <div className="flex flex-wrap items-center gap-2">
+      {item.status === 'pending' && <button disabled={busy} onClick={() => changeStatus(item, 'accepted')} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50">1. قبول الطلب</button>}
+      {(item.status === 'accepted' || item.status === 'waiting_for_whitelisting') && <button onClick={() => changeStatus(item, 'ready_to_join')} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100">2. أضفت البريد للقائمة — جهّز الدعوة</button>}
+      {item.status === 'ready_to_join' && <button disabled={busy} onClick={() => void sendInvitation(item)} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-800 disabled:opacity-50"><Mail className="inline h-4 w-4" /> {busy ? 'جارٍ إرسال البريد…' : '3. إرسال بريد القبول + رابط الاختبار'}</button>}
+      {item.status === 'ready_to_join' && <small className="w-full text-slate-500">سيُرسل الرابط إلى بريد المختبر المسجل فقط.</small>}
       {item.lastInvitationSentAt && <small className="w-full text-slate-500">آخر إرسال: {item.lastInvitationSentAt}</small>}
     </div>
   );
@@ -207,7 +208,7 @@ export const DeveloperDashboard: React.FC = () => {
 
       <section id="tester-applications" className="scroll-mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="mb-1 text-lg font-black">طلبات المختبرين</h2>
-        <p className="mb-3 text-sm text-slate-600">أكد التسجيل لإرسال رسالة القبول ورابط التطبيق إلى المختبر. أضف بريده إلى قائمة الاختبار في Google Play أو TestFlight قبل بدء الاختبار.</p>
+        <p className="mb-3 text-sm text-slate-600">المسار الآمن: اقبل الطلب، أضف بريد المختبر إلى قائمة Google Play أو TestFlight، ثم أكد الجهوزية وأرسل الرابط عبر البريد.</p>
         <div className="mb-4 flex flex-wrap items-end gap-2">
           <label className="text-xs font-bold text-slate-600">عرض الطلبات
           <select value={campaignId} onChange={(event) => setCampaignId(event.target.value)} className="mt-1 block min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">

@@ -45,6 +45,8 @@ export function publicCampaignFromDoc(id: string, data: Record<string, any>): Ap
     instagramUrl: data.instagramUrl || '',
     facebookUrl: data.facebookUrl || '',
     xUrl: data.xUrl || '',
+    applicationStatusGuideName: data.applicationStatusGuideName || '',
+    applicationStatusGuideUrl: data.applicationStatusGuideUrl || '',
     platform: data.platform || 'android',
     testType: data.testType || 'google_play_closed',
     testUrl: '',
@@ -147,6 +149,7 @@ export const createCampaign = async (campaign: AppCampaign) => {
     name: campaign.name, slug, developerId: campaign.developerId, developerName: campaign.developerName,
     supportEmail: campaign.supportEmail || '', website: campaign.website || '',
     instagramUrl: campaign.instagramUrl || '', facebookUrl: campaign.facebookUrl || '', xUrl: campaign.xUrl || '',
+    applicationStatusGuideName: campaign.applicationStatusGuideName || '', applicationStatusGuideUrl: campaign.applicationStatusGuideUrl || '',
     platform: campaign.platform, testType: campaign.testType, category: campaign.category, tagline: campaign.tagline,
     description: campaign.description, campaignGoal: campaign.campaignGoal || '', iconUrl: campaign.iconUrl,
     durationDays: campaign.durationDays, requiredTestersCount: campaign.requiredTestersCount, currentTestersCount: 0,
@@ -174,7 +177,7 @@ export const updateCampaignDocuments = async (id: string, updates: Partial<AppCa
   const { testUrl } = updates;
   // Keep updates aligned with the public document and its Security Rules.
   // In particular, never leak testUrl or reassign developerId.
-  const allowedPublicKeys: (keyof AppCampaign)[] = ['name', 'developerName', 'supportEmail', 'website', 'instagramUrl', 'facebookUrl', 'xUrl', 'platform', 'testType', 'category', 'tagline', 'description', 'campaignGoal', 'iconUrl', 'durationDays', 'requiredTestersCount', 'status', 'rewardTitle', 'rewardValue', 'testingInstructions'];
+  const allowedPublicKeys: (keyof AppCampaign)[] = ['name', 'developerName', 'supportEmail', 'website', 'instagramUrl', 'facebookUrl', 'xUrl', 'applicationStatusGuideName', 'applicationStatusGuideUrl', 'platform', 'testType', 'category', 'tagline', 'description', 'campaignGoal', 'iconUrl', 'durationDays', 'requiredTestersCount', 'status', 'rewardTitle', 'rewardValue', 'testingInstructions'];
   const publicUpdates = Object.fromEntries(allowedPublicKeys.flatMap((key) => updates[key] === undefined ? [] : [[key, updates[key]]]));
   if (Object.keys(publicUpdates).length) await updateDoc(doc(db, 'publicCampaigns', id), { ...publicUpdates, updatedAt: serverTimestamp() });
   if (typeof testUrl === 'string') await updateDoc(doc(db, 'campaignPrivate', id), { testUrl, updatedAt: serverTimestamp() });
