@@ -156,11 +156,11 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50 px-3 py-5 pb-20 sm:px-6 sm:py-8 sm:pb-8 lg:px-8">
+      <div className="mx-auto w-full min-w-0 max-w-4xl space-y-5 sm:space-y-6">
         {/* Top bar with back, official logo, and share */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center justify-between gap-3">
             <button
               onClick={onBackToAll}
               className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs transition-colors"
@@ -171,10 +171,10 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
             <TestFlowLogo size="sm" />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <button
               onClick={handleCopyLink}
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3.5 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+              className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-2 text-center text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100"
               title="نسخ الرابط المستقل لمشاركته في الإعلانات وشبكات التواصل"
             >
               {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -184,18 +184,18 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
         </div>
 
         {(campaign.supportEmail || safeSocialLinks.length > 0) && (
-          <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+          <section className="flex min-w-0 flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm">
             <strong className="text-slate-800">تواصل مع المطور:</strong>
-            {campaign.supportEmail && <a className="font-semibold text-blue-700" href={`mailto:${campaign.supportEmail}`}><Mail className="inline h-4 w-4" /> {campaign.supportEmail}</a>}
+            {campaign.supportEmail && <a className="min-w-0 break-all font-semibold text-blue-700" href={`mailto:${campaign.supportEmail}`}><Mail className="inline h-4 w-4" /> {campaign.supportEmail}</a>}
             {safeSocialLinks.map(([label, url]) => (
-              <a key={label} className="font-semibold text-blue-700" href={url} target="_blank" rel="noreferrer"><ExternalLink className="inline h-4 w-4" /> {label}</a>
+              <a key={label} className="min-w-0 break-words font-semibold text-blue-700" href={url} target="_blank" rel="noreferrer"><ExternalLink className="inline h-4 w-4" /> {label}</a>
             ))}
           </section>
         )}
 
         {/* Public Campaign Hero Card */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-md space-y-6">
-          <div className="flex flex-col sm:flex-row items-start gap-6 pb-6 border-b border-slate-100">
+        <div className="min-w-0 space-y-6 rounded-3xl border border-slate-200/80 bg-white p-4 shadow-md sm:p-8">
+          <div className="flex min-w-0 flex-col items-start gap-5 border-b border-slate-100 pb-6 sm:flex-row sm:gap-6">
             <AppIconImage
               src={campaign.iconUrl}
               alt={campaign.name}
@@ -204,7 +204,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
               platform={campaign.platform}
               className="w-24 h-24 rounded-3xl shadow-lg border border-slate-100 shrink-0"
             />
-            <div className="space-y-2 flex-1">
+            <div className="min-w-0 flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
                   {campaign.platform === 'android'
@@ -219,8 +219,8 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
                 <span className="text-xs text-slate-400">• بواسطة: {campaign.developerName}</span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{campaign.name}</h1>
-              <p className="text-sm font-semibold text-blue-700 leading-relaxed">
+              <h1 className="break-words text-2xl font-black text-slate-900 sm:text-3xl">{campaign.name}</h1>
+              <p className="break-words text-sm font-semibold leading-relaxed text-blue-700">
                 {campaign.tagline}
               </p>
             </div>
@@ -277,14 +277,14 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
 
           <section className="space-y-3" aria-labelledby="campaign-requirements-heading">
             <h2 id="campaign-requirements-heading" className="text-sm font-bold text-slate-900">متطلبات المشاركة</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                 <div className="text-[11px] font-semibold text-slate-500 mb-1">إصدار النظام</div>
                 <div className="text-xs font-bold text-slate-800">{campaign.minOsVersion}</div>
               </div>
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                 <div className="text-[11px] font-semibold text-slate-500 mb-1">الأجهزة والدول المطلوبة</div>
-                <div className="text-xs font-bold text-slate-800">
+                <div className="break-words text-xs font-bold text-slate-800">
                   {[...campaign.targetDevices, ...campaign.targetCountries].join(' · ') || 'جميع الأجهزة والدول'}
                 </div>
               </div>
@@ -311,7 +311,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
           {/* App Full Description */}
           <div className="space-y-3">
             <h2 className="text-sm font-bold text-slate-900">عن التطبيق وتجربة الاستخدام</h2>
-            <div className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50 p-5 rounded-2xl border border-slate-100">
+            <div className="break-words whitespace-pre-line rounded-2xl border border-slate-100 bg-slate-50 p-5 text-xs leading-relaxed text-slate-600 sm:text-sm">
               {campaign.description}
             </div>
           </div>
@@ -416,7 +416,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
               {campaign.applicationStatusGuideName && <p className="text-xs text-blue-700">لمتابعة الحالة: {campaign.applicationStatusGuideName}{applicationStatusGuideUrl && <> — <a className="font-bold underline" href={applicationStatusGuideUrl} target="_blank" rel="noreferrer">فتح الرابط</a></>}</p>}
             </div>
           ) : (
-            <form onSubmit={handleSubmitApplication} className="max-w-3xl mx-auto space-y-5">
+            <form onSubmit={handleSubmitApplication} className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
               <div className="rounded-2xl bg-blue-50 p-5 text-center space-y-2">
                 <h2 className="text-lg sm:text-xl font-black text-slate-900">سجّل اهتمامك بالتجربة</h2>
                 <p className="text-sm text-slate-600">أدخل اسمك وبريدك فقط، وسنتواصل معك إذا تم قبولك.</p>
@@ -433,7 +433,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
                 <input tabIndex={-1} autoComplete="off" value={formData.website} onChange={(event) => setFormData({ ...formData, website: event.target.value })} />
               </label>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">
                   الاسم <span className="text-rose-600">*</span>
                   <input required autoComplete="name" placeholder="اكتب اسمك" value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} className="w-full h-11 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />
@@ -448,7 +448,7 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
                 {showOptionalDetails ? 'إخفاء المعلومات الاختيارية' : 'إضافة معلومات اختيارية تساعدنا في المطابقة'}
               </button>
 
-              {showOptionalDetails && <div className="grid grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+              {showOptionalDetails && <div className="grid min-w-0 grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
                 <label className="space-y-1.5 text-xs font-bold text-slate-700">
                   {formData.osType === 'android' ? 'بريد Google Play (اختياري)' : 'بريد Apple ID (اختياري)'}
                   <input type="email" placeholder={formData.osType === 'android' ? 'play-account@gmail.com' : 'apple-id@icloud.com'} value={formData.googlePlayEmail} onChange={(event) => setFormData({ ...formData, googlePlayEmail: event.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 font-normal focus:ring-2 focus:ring-blue-500 focus:outline-hidden" />

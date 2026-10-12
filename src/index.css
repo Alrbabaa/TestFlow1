@@ -33,7 +33,20 @@
   }
 
   #root > * {
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
+  }
+
+  /* Page-level containers must never establish a second, wider viewport. */
+  #root :is(main, header, footer, section, article, form) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #root :is(.overflow-auto, .overflow-x-auto) {
+    max-width: 100%;
+    overscroll-behavior-x: contain;
   }
 
   img, video, canvas {

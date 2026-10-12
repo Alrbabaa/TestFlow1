@@ -107,7 +107,7 @@ export const DeveloperDashboard: React.FC = () => {
   );
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6" dir="rtl">
+    <main className="mx-auto w-full min-w-0 max-w-7xl space-y-6 p-4 sm:p-6" dir="rtl">
       <header className="flex flex-col gap-4 rounded-2xl bg-gradient-to-l from-blue-800 to-blue-600 p-6 text-white sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="mb-1 text-sm text-blue-100">مساحة عملك في TestFlow</p>
