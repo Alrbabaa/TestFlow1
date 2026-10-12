@@ -1,6 +1,6 @@
 import React from 'react';
 import { TestFlowLogo } from './TestFlowLogo';
-import { Shield, Lock, Trash2, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Shield, Lock, Trash2, CheckCircle2, ShieldCheck, Globe, Instagram, Linkedin, Mail, Music2 } from 'lucide-react';
 
 interface FooterProps {
   onOpenLegal: (tab: 'privacy' | 'terms' | 'deletion') => void;
@@ -32,6 +32,20 @@ export const Footer: React.FC<FooterProps> = ({
                 <Shield className="w-4 h-4 text-blue-400 shrink-0" />
                 حماية خصوصية وسرية التطبيقات
               </span>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-xs">
+              <div className="flex items-center gap-3">
+                <img src="/artistic-minds-logo.jpg" alt="Artistic Minds" className="h-12 w-12 rounded-lg border border-slate-700 object-cover" />
+                <div><p className="font-bold text-white">منصة من Artistic Minds</p><p className="mt-1 text-slate-400">حلول رقمية وتجارب تطبيقات أفضل.</p></div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2">
+                <a href="https://artisticmindsa.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><Globe className="h-3.5 w-3.5" /> الموقع</a>
+                <a href="mailto:artisticmindsa.r@gmail.com" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><Mail className="h-3.5 w-3.5" /> تواصل معنا</a>
+                <a href="https://www.tiktok.com/@artistic.minds8?_r=1&_t=ZS-98yHtzRROoK" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><Music2 className="h-3.5 w-3.5" /> TikTok</a>
+                <a href="https://x.com/ArtisticMindsa" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><span className="font-bold">X</span></a>
+                <a href="https://www.linkedin.com/in/artistic-minds-undefined-813b74423?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><Linkedin className="h-3.5 w-3.5" /> LinkedIn</a>
+                <a href="https://www.instagram.com/artistic_minds.24?igsh=YjRsZ3NjeGxhdGo3" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 hover:text-white"><Instagram className="h-3.5 w-3.5" /> Instagram</a>
+              </div>
             </div>
           </div>
 
