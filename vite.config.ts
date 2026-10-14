@@ -1,10 +1,28 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import {defineConfig} from 'vite';
+import {defineConfig, type Plugin} from 'vite';
+
+// Vite normally emits the module script before the extracted stylesheet. Some
+// Android in-app browsers paint the React tree in that gap, then reflow it a
+// moment later. Put the final stylesheet first so the first paint is stable.
+const stylesBeforeEntryScript = (): Plugin => ({
+  name: 'styles-before-entry-script',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html) {
+      const stylesheet = html.match(/<link rel="stylesheet" crossorigin href="\/assets\/index-[^"]+\.css">/);
+      const entryScript = html.match(/<script type="module" crossorigin src="\/assets\/index-[^"]+\.js"><\/script>/);
+      if (!stylesheet || !entryScript) return html;
+      return html
+        .replace(stylesheet[0], '')
+        .replace(entryScript[0], `${stylesheet[0]}\n    ${entryScript[0]}`);
+    },
+  },
+});
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), stylesBeforeEntryScript()],
     build: {
       // Firebase Firestore requires BigInt support; ES2020 covers current
       // Android WebView and mobile Safari without requiring desktop mode.

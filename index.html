@@ -16,6 +16,9 @@
         overflow-x: hidden;
       }
     </style>
+    <!-- Load the full application CSS before the module script. This avoids a
+         mobile first-paint at desktop width while Vite starts React. -->
+    <link rel="stylesheet" href="/src/index.css" />
     <title>TestFlow - منصة إدارة مختبري التطبيقات قبل النشر</title>
     <meta name="description" content="منصة ويب متكاملة لإدارة مختبري التطبيقات قبل النشر على المتاجر (Google Play Closed Testing & TestFlight)، لربط المطورين بمختبرين حقيقيين ومتابعة المهام والملاحظات." />
     <meta property="og:title" content="TestFlow - منصة إدارة مختبري التطبيقات" />
