@@ -26,6 +26,50 @@ const campaignSlugFromLocation = (pathname: string, search: string) => {
   return querySlug || routeMatch?.[1] || null;
 };
 
+type ViewportMetrics = {
+  innerWidth: number;
+  clientWidth: number;
+  visualWidth: number;
+  visualScale: number;
+  scrollWidth: number;
+  screenWidth: number;
+};
+
+const ViewportDiagnostics = () => {
+  const [metrics, setMetrics] = useState<ViewportMetrics | null>(null);
+
+  useEffect(() => {
+    const read = () => setMetrics({
+      innerWidth: window.innerWidth,
+      clientWidth: document.documentElement.clientWidth,
+      visualWidth: Math.round(window.visualViewport?.width ?? window.innerWidth),
+      visualScale: Number((window.visualViewport?.scale ?? 1).toFixed(2)),
+      scrollWidth: document.documentElement.scrollWidth,
+      screenWidth: window.screen.width,
+    });
+    read();
+    const viewport = window.visualViewport;
+    window.addEventListener('resize', read);
+    viewport?.addEventListener('resize', read);
+    const observer = new ResizeObserver(read);
+    observer.observe(document.documentElement);
+    return () => {
+      window.removeEventListener('resize', read);
+      viewport?.removeEventListener('resize', read);
+      observer.disconnect();
+    };
+  }, []);
+
+  if (!metrics) return null;
+  return (
+    <aside className="fixed bottom-3 left-3 z-[100] max-w-[calc(100vw-1.5rem)] rounded-lg bg-slate-950/95 px-3 py-2 font-mono text-[10px] leading-5 text-white shadow-xl" dir="ltr">
+      <div className="mb-1 font-bold text-amber-300">viewportDebug</div>
+      <div>inner: {metrics.innerWidth} · client: {metrics.clientWidth} · scroll: {metrics.scrollWidth}</div>
+      <div>visual: {metrics.visualWidth} · scale: {metrics.visualScale} · screen: {metrics.screenWidth}</div>
+    </aside>
+  );
+};
+
 function MainAppContent() {
   const {
     campaigns,
@@ -36,6 +80,7 @@ function MainAppContent() {
   } = useApp();
   const { user, userRole, loading, roleLoading, signInWithGoogle, refreshUserRole } = useAuth();
   const [pathname, setPathname] = useState(window.location.pathname);
+  const viewportDebug = new URLSearchParams(window.location.search).get('viewportDebug') === '1';
   // Resolve invitation routes synchronously. Reading this in an effect caused
   // the home page to flash before a campaign link was rendered on mobile.
   const routeCampaignSlug = campaignSlugFromLocation(pathname, window.location.search);
@@ -155,17 +200,21 @@ function MainAppContent() {
   // view until the public campaign document is available.
   if (routeCampaignSlug && !standaloneCampaign) {
     return (
-      <main className="grid min-h-screen w-full place-items-center bg-slate-50 px-4" dir="rtl">
-        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" aria-hidden="true" />
-          <h1 className="mt-4 text-base font-black text-slate-900">جارٍ فتح صفحة الحملة</h1>
-          <p className="mt-1 text-xs text-slate-600">يرجى الانتظار لحظة…</p>
-        </div>
-      </main>
+      <>
+        <main className="grid min-h-screen w-full place-items-center bg-slate-50 px-4" dir="rtl">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" aria-hidden="true" />
+            <h1 className="mt-4 text-base font-black text-slate-900">جارٍ فتح صفحة الحملة</h1>
+            <p className="mt-1 text-xs text-slate-600">يرجى الانتظار لحظة…</p>
+          </div>
+        </main>
+        {viewportDebug && <ViewportDiagnostics />}
+      </>
     );
   }
 
   return (
+    <>
     <div className="min-h-screen flex w-full max-w-full min-w-0 flex-col overflow-x-hidden bg-slate-50 text-slate-900 selection:bg-blue-600 selection:text-white">
       {/* Header */}
       <Header
@@ -235,6 +284,8 @@ function MainAppContent() {
       {/* Global In-App Toast Feedback */}
       <Toast />
     </div>
+    {viewportDebug && <ViewportDiagnostics />}
+    </>
   );
 }
 
