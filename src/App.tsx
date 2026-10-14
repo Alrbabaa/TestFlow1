@@ -76,15 +76,14 @@ function MainAppContent() {
   };
 
   const openCampaign = (slug: string) => {
-    window.history.pushState({}, '', `/campaign/${encodeURIComponent(slug)}`);
-    setPathname(window.location.pathname);
-    setSelectedCampaignSlug(slug);
+    // A full navigation avoids Android WebView retaining the previous visual
+    // viewport during an SPA route transition. The campaign route is resolved
+    // synchronously on the new document, so the home page does not flash.
+    window.location.assign(`/campaign/${encodeURIComponent(slug)}`);
   };
 
   const closeCampaign = () => {
-    window.history.pushState({}, '', '/');
-    setPathname('/');
-    setSelectedCampaignSlug(null);
+    window.location.assign('/');
   };
 
   useEffect(() => {
