@@ -19,6 +19,13 @@ import { firebaseConfigError } from './lib/firebase';
 const DeveloperLayout = lazy(() => import('./components/developer/DeveloperLayout').then((module) => ({ default: module.DeveloperLayout })));
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then((module) => ({ default: module.AdminLayout })));
 
+const campaignSlugFromLocation = (pathname: string, search: string) => {
+  const query = new URLSearchParams(search);
+  const querySlug = query.get('app') || query.get('test');
+  const routeMatch = pathname.match(/^\/(?:campaign|test)\/([^/]+)\/?$/);
+  return querySlug || routeMatch?.[1] || null;
+};
+
 function MainAppContent() {
   const {
     campaigns,
@@ -29,6 +36,9 @@ function MainAppContent() {
   } = useApp();
   const { user, userRole, loading, roleLoading, signInWithGoogle, refreshUserRole } = useAuth();
   const [pathname, setPathname] = useState(window.location.pathname);
+  // Resolve invitation routes synchronously. Reading this in an effect caused
+  // the home page to flash before a campaign link was rendered on mobile.
+  const routeCampaignSlug = campaignSlugFromLocation(pathname, window.location.search);
 
   // Selected Campaign for Detail/Apply Modal
   const [selectedCampaignForModal, setSelectedCampaignForModal] = useState<AppCampaign | null>(null);
@@ -47,11 +57,7 @@ function MainAppContent() {
   // Resolve shared campaign URLs before rendering the public campaign page.
   useEffect(() => {
     const resolveCampaignSlug = () => {
-      const path = window.location.pathname;
-      const querySlug = new URLSearchParams(window.location.search).get('app') ||
-        new URLSearchParams(window.location.search).get('test');
-      const routeMatch = path.match(/^\/(?:campaign|test)\/([^/]+)\/?$/);
-      setSelectedCampaignSlug(querySlug || routeMatch?.[1] || null);
+      setSelectedCampaignSlug(campaignSlugFromLocation(window.location.pathname, window.location.search));
     };
     resolveCampaignSlug();
     window.addEventListener('popstate', resolveCampaignSlug);
@@ -59,8 +65,9 @@ function MainAppContent() {
   }, [setSelectedCampaignSlug]);
 
   // Find standalone campaign if slug is selected
-  const standaloneCampaign = selectedCampaignSlug
-    ? campaigns.find((c) => c.slug === selectedCampaignSlug)
+  const campaignSlug = routeCampaignSlug || selectedCampaignSlug;
+  const standaloneCampaign = campaignSlug
+    ? campaigns.find((c) => c.slug === campaignSlug)
     : null;
 
   const navigate = (path: string) => {
@@ -142,6 +149,21 @@ function MainAppContent() {
     }
     // A signed-in account with no role is a new developer applicant.
     return user ? <DeveloperRegisterModal isOpen onClose={() => navigate('/')} /> : null;
+  }
+
+  // Do not briefly render the home page when an invitation URL is opened.
+  // Campaigns arrive from Firestore asynchronously, so use a neutral loading
+  // view until the public campaign document is available.
+  if (routeCampaignSlug && !standaloneCampaign) {
+    return (
+      <main className="grid min-h-screen w-full place-items-center bg-slate-50 px-4" dir="rtl">
+        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" aria-hidden="true" />
+          <h1 className="mt-4 text-base font-black text-slate-900">جارٍ فتح صفحة الحملة</h1>
+          <p className="mt-1 text-xs text-slate-600">يرجى الانتظار لحظة…</p>
+        </div>
+      </main>
+    );
   }
 
   return (
