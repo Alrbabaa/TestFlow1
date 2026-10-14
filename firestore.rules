@@ -45,6 +45,24 @@ service cloud.firestore {
       allow update: if signedIn() && manages(resource.data.campaignId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','developerNotes','updatedAt']) && request.resource.data.status in ['pending','accepted','waiting_for_whitelisting','ready_to_join','joined','active','completed','inactive','rejected'];
       allow delete: if signedIn() && manages(resource.data.campaignId);
     }
+    // Public request tracking contains only a deterministic email key and a
+    // status. It never contains the tester name, address, device data, or the
+    // private campaign test URL. Exact-document reads support the public
+    // "check my request" form; collection listing remains forbidden.
+    match /applicationStatuses/{id} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.resource.data.keys().hasOnly(['campaignId','emailKey','status','createdAt','updatedAt'])
+        && id == request.resource.data.campaignId + '_' + request.resource.data.emailKey
+        && request.resource.data.status in ['pending','accepted','waiting_for_whitelisting','ready_to_join','joined','active','completed','inactive','rejected']
+        && (request.resource.data.status == 'pending' || manages(request.resource.data.campaignId));
+      allow update: if manages(resource.data.campaignId)
+        && request.resource.data.keys().hasOnly(['campaignId','emailKey','status','createdAt','updatedAt'])
+        && request.resource.data.campaignId == resource.data.campaignId
+        && request.resource.data.emailKey == resource.data.emailKey
+        && request.resource.data.status in ['pending','accepted','waiting_for_whitelisting','ready_to_join','joined','active','completed','inactive','rejected'];
+      allow delete: if manages(resource.data.campaignId);
+    }
     match /testerFeedback/{id} {
       allow get, list: if isAdmin();
       allow create, update, delete: if false;

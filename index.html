@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- Critical mobile sizing: applied before the Vite bundle loads. -->
+    <style>
+      @viewport { width: device-width; zoom: 1; }
+      html, body, #root {
+        width: 100%;
+        max-width: 100%;
+        min-height: 100%;
+        margin: 0;
+        overflow-x: hidden;
+      }
+    </style>
     <title>TestFlow - منصة إدارة مختبري التطبيقات قبل النشر</title>
     <meta name="description" content="منصة ويب متكاملة لإدارة مختبري التطبيقات قبل النشر على المتاجر (Google Play Closed Testing & TestFlight)، لربط المطورين بمختبرين حقيقيين ومتابعة المهام والملاحظات." />
     <meta property="og:title" content="TestFlow - منصة إدارة مختبري التطبيقات" />

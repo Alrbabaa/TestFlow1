@@ -20,6 +20,7 @@ import {
   Star,
 } from 'lucide-react';
 import { submitTesterRating, submitTesterReport } from '../../lib/publicTesterFeedback';
+import { getPublicApplicationStatus, type PublicApplicationStatus } from '../../lib/firestore';
 
 interface PublicCampaignPageProps {
   campaign: AppCampaign;
@@ -56,6 +57,11 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
   const [reportForm, setReportForm] = useState({ email: '', title: '', description: '', severity: 'medium' as 'low' | 'medium' | 'high' | 'critical' });
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [statusLookupEmail, setStatusLookupEmail] = useState('');
+  const [statusLookup, setStatusLookup] = useState<PublicApplicationStatus | null>(null);
+  const [statusLookupDone, setStatusLookupDone] = useState(false);
+  const [statusLookupBusy, setStatusLookupBusy] = useState(false);
+  const [statusLookupError, setStatusLookupError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -117,9 +123,35 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
         setErrorMessage(result.message);
         return;
       }
+      setStatusLookupEmail(formData.email);
+      setStatusLookup({ status: 'pending' });
+      setStatusLookupDone(true);
       setIsSubmitted(true);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleStatusLookup = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const email = statusLookupEmail.trim().toLowerCase();
+    if (!email.includes('@')) {
+      setStatusLookup(null);
+      setStatusLookupDone(false);
+      setStatusLookupError('أدخل البريد الإلكتروني الذي سجلت به.');
+      return;
+    }
+    setStatusLookupBusy(true);
+    setStatusLookupError('');
+    try {
+      setStatusLookup(await getPublicApplicationStatus(campaign.id, email));
+      setStatusLookupDone(true);
+    } catch {
+      setStatusLookup(null);
+      setStatusLookupDone(false);
+      setStatusLookupError('تعذر التحقق من حالة الطلب الآن. حاول مرة أخرى.');
+    } finally {
+      setStatusLookupBusy(false);
     }
   };
 
@@ -384,6 +416,21 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
             </button>
           </div>
         </div>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-7" aria-labelledby="application-status-heading">
+          <div className="mx-auto w-full max-w-3xl">
+            <h2 id="application-status-heading" className="text-base font-black text-slate-900">تحقق من حالة طلبك</h2>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">أدخل البريد الذي استخدمته لهذه الحملة فقط. لا يظهر هنا أي رابط اختبار أو بيانات شخصية.</p>
+            <form onSubmit={handleStatusLookup} className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input type="email" autoComplete="email" value={statusLookupEmail} onChange={(event) => setStatusLookupEmail(event.target.value)} placeholder="name@gmail.com" dir="ltr" className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500" />
+              <button type="submit" disabled={statusLookupBusy} className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-800 hover:bg-blue-100 disabled:opacity-60">{statusLookupBusy ? 'جارٍ التحقق…' : 'تحقق من الحالة'}</button>
+            </form>
+            {statusLookupError && <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{statusLookupError}</p>}
+            {statusLookup && <div role="status" className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950"><b>{applicationStatusCopy[statusLookup.status].title}</b><p className="mt-1 text-xs leading-relaxed">{applicationStatusCopy[statusLookup.status].detail}</p>{statusLookup.updatedAt && <p className="mt-1 text-[11px] text-emerald-800">آخر تحديث: {statusLookup.updatedAt}</p>}</div>}
+            {statusLookupDone && !statusLookup && <p role="status" className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">لا يوجد طلب مسجل بهذا البريد لهذه الحملة. تأكد من البريد أو قدّم طلبًا جديدًا.</p>}
+            {campaign.applicationStatusGuideName && <div className="mt-3 text-xs text-slate-600">للمتابعة عبر {campaign.applicationStatusGuideName}{applicationStatusGuideUrl && <> — <a href={applicationStatusGuideUrl} target="_blank" rel="noreferrer" className="font-bold text-blue-700 underline">فتح الرابط</a></>}</div>}
+          </div>
+        </section>
 
         <section id="campaign-application" className="bg-white rounded-2xl p-5 sm:p-7 border border-slate-200 shadow-xs scroll-mt-24">
           {isSubmitted ? (

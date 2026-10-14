@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { createCampaign as createFirestoreCampaign, decideDeveloperRequest, ensureCampaignSlug, setUserRole, submitApplication as submitFirestoreApplication, submitDeveloperRequest, subscribeAdminReports, subscribeApplications, subscribeDeveloperRequests, subscribePrivateCampaigns, subscribePublicCampaigns, subscribeTesterFeedback, subscribeWorkspaceCampaigns, updateAdminReportStatus, updateApplication as updateFirestoreApplication, updateCampaignDocuments, deleteCampaignDocuments } from '../lib/firestore';
+import { applicationEmailKey, createCampaign as createFirestoreCampaign, decideDeveloperRequest, ensureCampaignSlug, setUserRole, submitApplication as submitFirestoreApplication, submitDeveloperRequest, subscribeAdminReports, subscribeApplications, subscribeDeveloperRequests, subscribePrivateCampaigns, subscribePublicCampaigns, subscribeTesterFeedback, subscribeWorkspaceCampaigns, updateAdminReportStatus, updateApplication as updateFirestoreApplication, updateCampaignDocuments, deleteCampaignDocuments } from '../lib/firestore';
 import { useAuth } from './AuthContext';
 import type { AppCampaign, BugReport, DeveloperUser, EmailNotification, ReputationLevel, SecurityAuditEntry, TesterApplication, TesterFeedback, TesterStatus, TesterUser, UserRole } from '../types';
 
@@ -88,7 +88,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const applyToCampaign: AppContextType['applyToCampaign'] = async (campaignId, form) => {
     const campaign = campaigns.find((item) => item.id === campaignId); const email = form.email.trim().toLowerCase();
     if (!campaign || !email.includes('@') || !form.name.trim()) return { success: false, message: 'Please enter your name and a valid email.' };
-    const emailKey = btoa(email).replace(/=+$/g, '').replace(/[+/]/g, '_');
+    const emailKey = applicationEmailKey(email);
     try { const id = await submitFirestoreApplication(campaign, { testerId: 'anonymous', testerName: form.name.trim(), testerEmail: email, googlePlayEmail: form.googlePlayEmail.trim().toLowerCase(), testerCountry: form.country.trim(), deviceModel: form.deviceModel.trim(), osType: form.osType, osVersion: form.osVersion.trim() }, emailKey); return { success: true, message: 'Application submitted.', applicationId: id }; }
     catch (error: any) { return { success: false, message: error?.code === 'permission-denied' ? 'This application was already submitted or the campaign is unavailable.' : 'Could not submit your application.' }; }
   };
@@ -96,8 +96,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateCampaign: AppContextType['updateCampaign'] = async (id, updates) => { try { await updateCampaignDocuments(id, updates); return true; } catch { showToast('Could not save campaign changes.', 'error'); return false; } };
   const removeCampaign: AppContextType['removeCampaign'] = async (id) => { try { await deleteCampaignDocuments(id, campaigns.find((campaign) => campaign.id === id)?.slug); return true; } catch { showToast('Could not delete campaign.', 'error'); return false; } };
   const updateApplicationStatus: AppContextType['updateApplicationStatus'] = async (id, status, notes) => {
+    const application = applications.find((item) => item.id === id);
+    if (!application) {
+      showToast('Could not find this application.', 'error');
+      return false;
+    }
     try {
-      await updateFirestoreApplication(id, { status, ...(notes ? { developerNotes: notes } : {}) });
+      await updateFirestoreApplication(id, application.campaignId, { status, ...(notes ? { developerNotes: notes } : {}) });
       return true;
     } catch {
       showToast('Could not update application.', 'error');
@@ -111,7 +116,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Developer request submitted.');
   };
   const updateDeveloperStatus = (id: string, status: DeveloperUser['status']) => { void decideDeveloperRequest(id, status === 'approved' ? 'approve' : 'reject').catch(() => showToast('Could not update developer request.', 'error')); };
-  const toggleTaskCompletion = (id: string, taskId: string) => { const app = applications.find((item) => item.id === id); if (app) void updateFirestoreApplication(id, { completedTaskIds: app.completedTaskIds.includes(taskId) ? app.completedTaskIds.filter((item) => item !== taskId) : [...app.completedTaskIds, taskId] }); };
+  const toggleTaskCompletion = (id: string, taskId: string) => { const app = applications.find((item) => item.id === id); if (app) void updateFirestoreApplication(id, app.campaignId, { completedTaskIds: app.completedTaskIds.includes(taskId) ? app.completedTaskIds.filter((item) => item !== taskId) : [...app.completedTaskIds, taskId] }); };
   const confirmTesterJoined = (id: string) => updateApplicationStatus(id, 'active'); const confirmWhitelisted = (id: string) => updateApplicationStatus(id, 'ready_to_join'); const noop = () => undefined;
   const value = useMemo<AppContextType>(() => ({
     currentUserRole: roleOverride === 'tester' ? currentUserRole : roleOverride, setCurrentUserRole, currentTester, currentDeveloper, setCurrentTester, setCurrentDeveloper, campaigns, applications, developers, testers, bugReports, feedbacks, emails, securityLogs, logSecurityEvent,

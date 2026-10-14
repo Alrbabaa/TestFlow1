@@ -22,6 +22,9 @@ export const ADMIN_UIDS = new Set([
 
 export type StoredRole = 'developer_pending' | 'developer' | 'admin';
 export const isAdminUid = (uid?: string | null) => Boolean(uid && ADMIN_UIDS.has(uid));
+export const applicationEmailKey = (email: string) => btoa(email.trim().toLowerCase())
+  .replace(/=+$/g, '')
+  .replace(/[+/]/g, '_');
 const dateString = (value: unknown) => value instanceof Timestamp
   ? value.toDate().toISOString().slice(0, 10)
   : typeof value === 'string' ? value : new Date().toISOString().slice(0, 10);
@@ -89,6 +92,24 @@ export function applicationFromDoc(id: string, data: Record<string, any>): Teste
   };
 }
 
+export type PublicApplicationStatus = {
+  status: TesterApplication['status'];
+  updatedAt?: string;
+};
+
+/**
+ * Looks up only the non-sensitive status record for one campaign/email pair.
+ * The application document itself remains private to the campaign owner.
+ */
+export const getPublicApplicationStatus = async (campaignId: string, email: string): Promise<PublicApplicationStatus | null> => {
+  const emailKey = applicationEmailKey(email);
+  const snapshot = await getDoc(doc(db, 'applicationStatuses', `${campaignId}_${emailKey}`));
+  if (!snapshot.exists()) return null;
+  const data = snapshot.data();
+  if (data.campaignId !== campaignId || data.emailKey !== emailKey || typeof data.status !== 'string') return null;
+  return { status: data.status as TesterApplication['status'], updatedAt: data.updatedAt ? dateString(data.updatedAt) : undefined };
+};
+
 export const subscribePublicCampaigns = (callback: (items: AppCampaign[]) => void) => onSnapshot(
   query(collection(db, 'publicCampaigns'), where('status', '==', 'active')),
   (snapshot) => callback(snapshot.docs.map((item) => publicCampaignFromDoc(item.id, item.data()))),
@@ -132,11 +153,18 @@ export const submitApplication = async (campaign: AppCampaign, input: Omit<Teste
   // A deterministic id prevents normal client retries and duplicate form
   // submissions. Rules require this exact id and deny overwrites.
   const id = `${campaign.id}_${emailKey}`;
-  await setDoc(doc(db, 'applications', id), {
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'applications', id), {
     campaignId: campaign.id, developerId: campaign.developerId, appName: campaign.name, appIcon: campaign.iconUrl,
     platform: campaign.platform, ...input, emailKey, status: 'pending', currentDay: 0,
     completedTaskIds: [], activityScore: 50, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
   });
+  // A separate document deliberately contains no tester identity or test URL.
+  // It powers the public "check my request" form without exposing applications.
+  batch.set(doc(db, 'applicationStatuses', id), {
+    campaignId: campaign.id, emailKey, status: 'pending', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  await batch.commit();
   return id;
 };
 
@@ -191,7 +219,16 @@ export const deleteCampaignDocuments = async (id: string, slug?: string) => {
   await batch.commit();
 };
 
-export const updateApplication = (id: string, values: Partial<TesterApplication>) => updateDoc(doc(db, 'applications', id), { ...values, updatedAt: serverTimestamp() });
+export const updateApplication = async (id: string, campaignId: string, values: Partial<TesterApplication>) => {
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'applications', id), { ...values, updatedAt: serverTimestamp() });
+  if (values.status) {
+    batch.set(doc(db, 'applicationStatuses', id), {
+      campaignId, status: values.status, updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }
+  await batch.commit();
+};
 export const updateAdminReportStatus = (id: string, status: BugReport['status']) => updateDoc(doc(db, 'adminReports', id), { status });
 export const decideDeveloperRequest = async (uid: string, decision: 'approve' | 'reject') => {
   // Approval and role change must be atomic; no temporary state can grant an

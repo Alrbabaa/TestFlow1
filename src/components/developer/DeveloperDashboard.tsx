@@ -98,7 +98,7 @@ export const DeveloperDashboard: React.FC = () => {
 
   const renderActions = (item: TesterApplication, busy: boolean) => (
     <div className="flex flex-wrap items-center gap-2">
-      {item.status === 'pending' && <button disabled={busy} onClick={() => changeStatus(item, 'accepted')} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50">1. قبول الطلب</button>}
+      {item.status === 'pending' && <><button disabled={busy} onClick={() => changeStatus(item, 'accepted')} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50">1. قبول الطلب</button><button disabled={busy} onClick={() => changeStatus(item, 'rejected')} className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50">رفض الطلب</button></>}
       {(item.status === 'accepted' || item.status === 'waiting_for_whitelisting') && <button onClick={() => changeStatus(item, 'ready_to_join')} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100">2. أضفت البريد للقائمة — جهّز الدعوة</button>}
       {item.status === 'ready_to_join' && <button disabled={busy} onClick={() => void sendInvitation(item)} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-800 disabled:opacity-50"><Mail className="inline h-4 w-4" /> {busy ? 'جارٍ إرسال البريد…' : '3. إرسال بريد القبول + رابط الاختبار'}</button>}
       {item.status === 'ready_to_join' && <small className="w-full text-slate-500">سيُرسل الرابط إلى بريد المختبر المسجل فقط.</small>}
