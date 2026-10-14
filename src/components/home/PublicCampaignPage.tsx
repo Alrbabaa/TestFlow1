@@ -475,7 +475,10 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
               </div>
 
               {errorMessage && <div role="alert" className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">{errorMessage}</div>}
-              <label className="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
+              {/* Keep the bot-trap in the form without placing an element far
+                  outside the visual viewport. Android Chrome includes such
+                  off-canvas elements in its initial page-size calculation. */}
+              <label hidden aria-hidden="true">
                 Website
                 <input tabIndex={-1} autoComplete="off" value={formData.website} onChange={(event) => setFormData({ ...formData, website: event.target.value })} />
               </label>
