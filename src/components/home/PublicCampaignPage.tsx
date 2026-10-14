@@ -534,14 +534,6 @@ export const PublicCampaignPage: React.FC<PublicCampaignPageProps> = ({
           )}
         </section>
 
-        {!existingApp && !isSubmitted && (
-          <div className="fixed inset-x-4 bottom-4 z-20 sm:hidden">
-            <button onClick={scrollToApplication} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white shadow-lg shadow-blue-900/20">
-              <Send className="h-4 w-4" /> سجّل اهتمامك بالتجربة
-            </button>
-          </div>
-        )}
-
         <section className="grid gap-5 lg:grid-cols-2">
           <form onSubmit={handleSubmitFeedback} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="font-black text-slate-900"><Star className="inline h-4 w-4 text-amber-500" /> قيّم التجربة</h2>
